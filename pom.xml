@@ -1,0 +1,346 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.kevin</groupId>
+    <artifactId>estools</artifactId>
+    <version>1.0-SNAPSHOT</version>
+
+    <name>estools</name>
+    <packaging>jar</packaging>
+    <description>estools</description>
+
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>2.0.2.RELEASE</version>
+        <relativePath/>
+    </parent>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <java.version>1.8</java.version>
+        <maven-compiler-plugin.version>3.0</maven-compiler-plugin.version>
+        <maven-jar-plugin.version>2.4</maven-jar-plugin.version>
+        <maven-resources-plugin.version>2.7</maven-resources-plugin.version>
+        <maven-source-plugin.version>2.4</maven-source-plugin.version>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.hibernate</groupId>
+                    <artifactId>hibernate-validator</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <!--<dependency>-->
+            <!--<groupId>org.springframework.boot</groupId>-->
+            <!--<artifactId>spring-boot-starter-web</artifactId>-->
+        <!--</dependency>-->
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-tomcat</artifactId>
+            <!--<scope>provided</scope>-->
+        </dependency>
+        <dependency>
+            <groupId>com.alibaba</groupId>
+            <artifactId>fastjson</artifactId>
+            <version>1.2.46</version>
+        </dependency>
+        <dependency>
+            <groupId>dom4j</groupId>
+            <artifactId>dom4j</artifactId>
+            <version>1.6.1</version>
+        </dependency>
+        <dependency>
+            <groupId>jaxen</groupId>
+            <artifactId>jaxen</artifactId>
+            <version>1.1.6</version>
+        </dependency>
+        <dependency>
+            <groupId>com.bonc.usdp.sql4es</groupId>
+            <artifactId>sql4es-6.2.4-v1.0-SNAPSHOT</artifactId>
+            <version>6.2.4</version>
+        </dependency>
+        <dependency>
+            <groupId>net.java.dev.jna</groupId>
+            <artifactId>jna</artifactId>
+            <version>5.4.0</version>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>false</filtering>
+                <excludes>
+                    <exclude>application.properties</exclude>
+                </excludes>
+            </resource>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+                <includes>
+                    <include>application.properties</include>
+                </includes>
+            </resource>
+        </resources>
+        <plugins>
+            <!-- 编译插件, 设定JDK版本 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <encoding>${project.build.sourceEncoding}</encoding>
+                    <source>${java.version}</source>
+                    <target>${java.version}</target>
+                    <showDeprecation>true</showDeprecation>
+                    <showWarnings>true</showWarnings>
+                    <debug>true</debug>
+                </configuration>
+            </plugin>
+            <!-- 解决maven test命令时console出现中文乱码乱码 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>2.18.1</version>
+                <configuration>
+                    <skipTests>true</skipTests>
+                    <forkMode>once</forkMode>
+                    <argLine>-Dfile.encoding=UTF-8</argLine>
+                </configuration>
+            </plugin>
+
+            <!-- 打包jar文件时，配置manifest文件，加入lib包的jar依赖 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>2.6</version>
+                <configuration>
+                    <outputDirectory>${project.build.directory}/estools</outputDirectory>
+                    <excludes>
+                        <exclude>**/*.xml</exclude>
+                        <exclude>**/*.properties</exclude>
+                    </excludes>
+                    <archive>
+                        <manifestEntries>
+                            <Class-path>./</Class-path>
+                        </manifestEntries>
+                        <manifest>
+                            <addClasspath>true</addClasspath>
+                            <classpathPrefix>lib/</classpathPrefix>
+                            <!--<mainClass>com.kevin.EsEngineApplication</mainClass>-->
+                            <mainClass>com.kevin.app.App</mainClass>
+                        </manifest>
+                    </archive>
+                </configuration>
+            </plugin>
+
+            <!-- 拷贝依赖的jar包到lib目录 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <version>2.10</version>
+                <executions>
+                    <execution>
+                        <id>copy-dependencies</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>copy-dependencies</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.build.directory}/estools/lib</outputDirectory>
+                            <excludeTransitive>false</excludeTransitive>
+                            <stripVersion>false</stripVersion>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- 其他文件拷贝 -->
+            <plugin>
+                <artifactId>maven-resources-plugin</artifactId>
+                <version>2.7</version>
+                <executions>
+                    <execution>
+                        <id>copy-resources</id>
+                        <!-- here the phase you need -->
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.build.directory}/estools</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <filtering>true</filtering>
+                                    <directory>src/main/resources</directory>
+                                    <includes>
+                                        <include>*.properties</include>
+                                    </includes>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+
+</project>
+
+
+        <!--<?xml version="1.0" encoding="UTF-8"?>-->
+<!--<project xmlns="http://maven.apache.org/POM/4.0.0"-->
+         <!--xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"-->
+         <!--xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">-->
+<!--<modelVersion>4.0.0</modelVersion>-->
+
+<!--<groupId>com.kevin</groupId>-->
+<!--<artifactId>estools</artifactId>-->
+<!--<version>1.0-SNAPSHOT</version>-->
+
+<!--<name>estools</name>-->
+<!--<packaging>jar</packaging>-->
+<!--<description>estools</description>-->
+
+<!--&lt;!&ndash;<parent>&ndash;&gt;-->
+<!--&lt;!&ndash;<groupId>org.springframework.boot</groupId>&ndash;&gt;-->
+<!--&lt;!&ndash;<artifactId>spring-boot-starter-parent</artifactId>&ndash;&gt;-->
+<!--&lt;!&ndash;<version>2.0.2.RELEASE</version>&ndash;&gt;-->
+<!--&lt;!&ndash;<relativePath/>&ndash;&gt;-->
+<!--&lt;!&ndash;</parent>&ndash;&gt;-->
+
+<!--<properties>-->
+    <!--<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>-->
+    <!--<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>-->
+    <!--<java.version>1.8</java.version>-->
+    <!--<maven-compiler-plugin.version>3.0</maven-compiler-plugin.version>-->
+    <!--<maven-jar-plugin.version>2.4</maven-jar-plugin.version>-->
+    <!--<maven-resources-plugin.version>2.7</maven-resources-plugin.version>-->
+    <!--<maven-source-plugin.version>2.4</maven-source-plugin.version>-->
+<!--</properties>-->
+
+<!--<dependencies>-->
+    <!--&lt;!&ndash;<dependency>&ndash;&gt;-->
+    <!--&lt;!&ndash;<groupId>org.springframework.boot</groupId>&ndash;&gt;-->
+    <!--&lt;!&ndash;<artifactId>spring-boot-starter-web</artifactId>&ndash;&gt;-->
+    <!--&lt;!&ndash;<exclusions>&ndash;&gt;-->
+    <!--&lt;!&ndash;<exclusion>&ndash;&gt;-->
+    <!--&lt;!&ndash;<groupId>org.hibernate</groupId>&ndash;&gt;-->
+    <!--&lt;!&ndash;<artifactId>hibernate-validator</artifactId>&ndash;&gt;-->
+    <!--&lt;!&ndash;</exclusion>&ndash;&gt;-->
+    <!--&lt;!&ndash;</exclusions>&ndash;&gt;-->
+    <!--&lt;!&ndash;</dependency>&ndash;&gt;-->
+
+    <!--&lt;!&ndash;<dependency>&ndash;&gt;-->
+    <!--&lt;!&ndash;<groupId>org.springframework.boot</groupId>&ndash;&gt;-->
+    <!--&lt;!&ndash;<artifactId>spring-boot-starter-tomcat</artifactId>&ndash;&gt;-->
+    <!--&lt;!&ndash;<scope>provided</scope>&ndash;&gt;-->
+    <!--&lt;!&ndash;</dependency>&ndash;&gt;-->
+    <!--<dependency>-->
+        <!--<groupId>com.alibaba</groupId>-->
+        <!--<artifactId>fastjson</artifactId>-->
+        <!--<version>1.2.46</version>-->
+    <!--</dependency>-->
+    <!--<dependency>-->
+        <!--<groupId>dom4j</groupId>-->
+        <!--<artifactId>dom4j</artifactId>-->
+        <!--<version>1.6.1</version>-->
+    <!--</dependency>-->
+    <!--<dependency>-->
+        <!--<groupId>jaxen</groupId>-->
+        <!--<artifactId>jaxen</artifactId>-->
+        <!--<version>1.1.6</version>-->
+    <!--</dependency>-->
+    <!--<dependency>-->
+        <!--<groupId>com.bonc.usdp.sql4es</groupId>-->
+        <!--<artifactId>sql4es-6.2.4-v1.0-SNAPSHOT</artifactId>-->
+        <!--<version>6.2.4</version>-->
+    <!--</dependency>-->
+    <!--<dependency>-->
+        <!--<groupId>net.java.dev.jna</groupId>-->
+        <!--<artifactId>jna</artifactId>-->
+        <!--<version>5.4.0</version>-->
+    <!--</dependency>-->
+<!--</dependencies>-->
+
+<!--<build>-->
+    <!--<resources>-->
+        <!--<resource>-->
+            <!--<directory>src/main/resources</directory>-->
+            <!--<filtering>false</filtering>-->
+            <!--<excludes>-->
+                <!--<exclude>application.properties</exclude>-->
+            <!--</excludes>-->
+        <!--</resource>-->
+        <!--<resource>-->
+            <!--<directory>src/main/resources</directory>-->
+            <!--<filtering>true</filtering>-->
+            <!--<includes>-->
+                <!--<include>application.properties</include>-->
+            <!--</includes>-->
+        <!--</resource>-->
+    <!--</resources>-->
+    <!--<plugins>-->
+        <!--&lt;!&ndash; 编译插件, 设定JDK版本 &ndash;&gt;-->
+        <!--<plugin>-->
+            <!--<groupId>org.apache.maven.plugins</groupId>-->
+            <!--<artifactId>maven-compiler-plugin</artifactId>-->
+            <!--<configuration>-->
+                <!--<encoding>${project.build.sourceEncoding}</encoding>-->
+                <!--<source>${java.version}</source>-->
+                <!--<target>${java.version}</target>-->
+                <!--<showDeprecation>true</showDeprecation>-->
+                <!--<showWarnings>true</showWarnings>-->
+                <!--<debug>true</debug>-->
+            <!--</configuration>-->
+        <!--</plugin>-->
+        <!--&lt;!&ndash;            <plugin>&ndash;&gt;-->
+        <!--&lt;!&ndash;                <groupId>org.springframework.boot</groupId>&ndash;&gt;-->
+        <!--&lt;!&ndash;                <artifactId>spring-boot-maven-plugin</artifactId>&ndash;&gt;-->
+        <!--&lt;!&ndash;            </plugin>&ndash;&gt;-->
+        <!--<plugin>-->
+            <!--<artifactId>maven-assembly-plugin</artifactId>-->
+            <!--<configuration>-->
+                <!--<archive>-->
+                    <!--<manifest>-->
+                        <!--&lt;!&ndash;这里要替换成jar包main方法所在类 &ndash;&gt;-->
+                        <!--<mainClass>com.kevin.app.App</mainClass>-->
+                    <!--</manifest>-->
+                    <!--<manifestEntries>-->
+                        <!--<Class-Path>.</Class-Path>-->
+                    <!--</manifestEntries>-->
+                <!--</archive>-->
+                <!--<descriptorRefs>-->
+                    <!--<descriptorRef>jar-with-dependencies</descriptorRef>-->
+                <!--</descriptorRefs>-->
+            <!--</configuration>-->
+            <!--<executions>-->
+                <!--<execution>-->
+                    <!--<id>make-assembly</id> &lt;!&ndash; this is used for inheritance merges &ndash;&gt;-->
+                    <!--<phase>package</phase> &lt;!&ndash; 指定在打包节点执行jar包合并操作 &ndash;&gt;-->
+                    <!--<goals>-->
+                        <!--<goal>single</goal>-->
+                    <!--</goals>-->
+                <!--</execution>-->
+            <!--</executions>-->
+        <!--</plugin>-->
+
+
+    <!--</plugins>-->
+<!--</build>-->
+
+
+<!--</project>-->
