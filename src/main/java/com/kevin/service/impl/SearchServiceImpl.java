@@ -24,8 +24,8 @@ public class SearchServiceImpl implements SearchService {
         ESConnection esConnection=null;
         try {
             Class.forName("com.bonc.usdp.sql4es.jdbc.ESDriver");
-            esConnection = (ESConnection) DriverManager.getConnection("jdbc:sql4es://202.112.195.82:9300/patent818?cluster.name=patent");
-            List<String> contents = getContents(docId);
+            esConnection = (ESConnection) DriverManager.getConnection("jdbc:sql4es://202.112.195.83:9300/patent821v3?cluster.name=patent");
+            List<String> contents = getContents(esConnection,docId);
             List<String> searchRes = getCompareDocIds(esConnection,contents,num);
             JSONObject jsonObject = new JSONObject();
             jsonObject.put("docIds",searchRes);
@@ -54,8 +54,8 @@ public class SearchServiceImpl implements SearchService {
             try {
                 st = esConnection.createStatement();
                 StringBuilder sql = new StringBuilder();
-                sql.append("select docid,appid,_score from cn WHERE _search = 'title:(").append(content).append(") and abs:(")
-                        .append(content).append(") and claims:(").append(content).append(") and description:(")
+                sql.append("select docid,appid,_score from en WHERE _search = 'title:(").append(content).append(") or abs:(")
+                        .append(content).append(") or claims:(").append(content).append(") or description:(")
                         .append(content).append(") ' limit "+num);
 
                 ResultSet rs = st.executeQuery(sql.toString());
@@ -113,13 +113,38 @@ public class SearchServiceImpl implements SearchService {
     }
 
 
-    private List<String> getContents(String docId){
+    private List<String> getContents(ESConnection esConnection, String docId){
+
+        //TODO get document content by docid
+
+        Statement st=null;
+        List<String> contents = new ArrayList<>();
+        try {
+            st = esConnection.createStatement();
+
+            String sql = "select title,abs,claims from en where docid='"+docId+"'";
+            ResultSet res = st.executeQuery(sql.toString());
+
+            while (res.next()){
+                contents.add(StringUtil.remove(res.getString(1)));
+                contents.add(StringUtil.remove(res.getString(2)));
+                contents.add(StringUtil.remove(res.getString(3)));
+//                contents.add(res.getString(3));
+            }
 
 
-            //TODO get document content by docid
-            return null;
-
-
+        } catch (Exception e) {
+            e.printStackTrace();
+        }finally {
+            if (st != null){
+                try {
+                    st.close();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+        return contents;
 
     }
 }
