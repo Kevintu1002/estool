@@ -3,22 +3,18 @@ package com.kevin.service.impl;
 import com.alibaba.fastjson.JSONObject;
 import com.bonc.usdp.sql4es.jdbc.ESConnection;
 import com.csvreader.CsvWriter;
-import com.kevin.model.DocContent;
 import com.kevin.service.SearchService;
 import com.kevin.utils.CSVUtil;
 import com.kevin.utils.ExcelUtil;
 import com.kevin.utils.StringUtil;
-import com.kevin.utils.XmlParser;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.io.*;
-import java.nio.charset.Charset;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -29,11 +25,19 @@ import java.util.*;
 public class SearchServiceImpl implements SearchService {
     Log log = LogFactory.getLog(SearchServiceImpl.class);
 
-    @Value("${es.jdbc.url}")
-    private String esjdbcurl;
+    private static final String finaldocid = "docid";
+    private static final String title = "title";
+    private static final String abs = "abs";
+    private static final String claims = "claims";
 
-    @Value("${csv.out.dirpath}")
-    private String csvoutdirpath;
+    @Value("${es.jdbc.url}")
+    private String esjdbcurl="jdbc:sql4es://202.112.195.83:9300/patent821v8?cluster.name=patent";
+
+    @Value("${csv.origin.dir.path}")
+    private String csvorigindirpath="/data/disk1/patent/Django/media/filelist/";
+
+    @Value("${csv.out.dir.path}")
+    private String csvoutdirpath="/data/disk1/patent/Django/media/csvout/";
 
 
     @Override
@@ -64,23 +68,24 @@ public class SearchServiceImpl implements SearchService {
     }
 
     @Override
-    public String searchByFile(MultipartFile file,Integer num) {
+    public String searchByFile(String filename,Integer num) {
         JSONObject returnjson = new JSONObject();
         InputStream ins = null;
         Reader in = null;
         List<String> docIds = new ArrayList<>();
         try{
-            String filename = file.getOriginalFilename();
-            filename = filename.substring(filename.lastIndexOf(".")).toUpperCase();
-            if(filename.contains("CSV")){
-                ins = file.getInputStream();
-                in = new BufferedReader(new InputStreamReader(ins));
-                docIds = CSVUtil.readCsvFile(in);
-            }else if(filename.contains("XLSX")){
-                XSSFWorkbook workbook = new XSSFWorkbook(file.getInputStream());
+            String absolutefilepath = csvorigindirpath + filename;
+
+            log.info("====== The input file name is ："+absolutefilepath);
+
+            String filesubffix = filename.substring(filename.lastIndexOf(".")).toUpperCase();
+            if(filesubffix.contains("CSV")){
+                docIds = CSVUtil.readCsvFile(absolutefilepath);
+            }else if(filesubffix.contains("XLSX")){
+                XSSFWorkbook workbook = new XSSFWorkbook(new File(absolutefilepath));
                 docIds = ExcelUtil.readExcel(workbook,0,0);
-            }else if(filename.contains("XLS")){
-                HSSFWorkbook workbook = new HSSFWorkbook(file.getInputStream());
+            }else if(filesubffix.contains("XLS")){
+                HSSFWorkbook workbook = new HSSFWorkbook(new FileInputStream(absolutefilepath));
                 docIds = ExcelUtil.readExcel(workbook,0,0);
             }else{
                 returnjson.put("code","0000");
@@ -91,17 +96,13 @@ public class SearchServiceImpl implements SearchService {
             if(null == num) num = 10;
             Class.forName("com.bonc.usdp.sql4es.jdbc.ESDriver");
             ESConnection esConnection = (ESConnection) DriverManager.getConnection(esjdbcurl);
-            CsvWriter csvWriter = new CsvWriter("findResDocids.csv");
-            for(String docid : docIds){
-                List<String> contents = getContents(esConnection,docid);
-                List<String> searchRes = getCompareDocIds(esConnection,contents,num);
-                //写入输出csv
-                for(String resdocid : searchRes){
-                    String[] docids = {docid,resdocid};
-                    csvWriter.writeRecord(docids);
-                }
-            }
-            csvWriter.close();
+
+            /**
+             * 生成导出CSV
+             */
+            outCsv(esConnection,docIds,num,abs);
+            outCsv(esConnection,docIds,num,claims);
+
         }catch (Exception e){
             log.error(e.getMessage(),e);
         }finally {
@@ -116,11 +117,36 @@ public class SearchServiceImpl implements SearchService {
         return null;
     }
 
-    private List<Map<String,String>> getCompareDocIds2(ESConnection esConnection,List<String> contents,int num){
+    private void outCsv(ESConnection esConnection,List<String> docIds,Integer num,String type) throws Exception{
+        String absoluteoutpath = csvoutdirpath + type + "_out.csv";
+        CsvWriter csvWriter = new CsvWriter(absoluteoutpath);
+        int m = 1;
+        for(String docid : docIds){
+            Map<String,String> contents = getContents2(esConnection,docid);
+            List<Map<String,String>> searchRes = getCompareDocIds2(esConnection,contents,num);
+            //写入输出csv
+            int n = 1;
+            for(Map<String,String> resdocid : searchRes){
+                String[] docids = {m +"",docid,contents.get(type),n+"",resdocid.get(finaldocid),resdocid.get(type)};
+                csvWriter.writeRecord(docids);
+                n ++;
+            }
+            m++;
+        }
+        csvWriter.close();
 
-        List<String> docIds = new ArrayList<>();
-        Map<String,Float> scores = new HashMap<>();
-        for (String content:contents){
+    }
+    private List<Map<String,String>> getCompareDocIds2(ESConnection esConnection,Map<String,String> contentdetail,int num){
+
+        List<Map<String,String>> docIds = new ArrayList<>();
+        Map<String,Map<String,Object>> scores = new HashMap<>();
+        List<String> contents2 = new ArrayList<>();
+        contents2.add(contentdetail.get(title));
+        contents2.add(contentdetail.get(abs));
+        contents2.add(contentdetail.get(claims));
+
+        log.info("========== get compare docid ===============");
+        for (String content:contents2){
             Statement st=null;
             try {
                 st = esConnection.createStatement();
@@ -142,15 +168,19 @@ public class SearchServiceImpl implements SearchService {
                     String claims = rs.getString(5);
                     String key = appId+"_"+docId;
                     if (scores.containsKey(key)){
-                        float sco = scores.get(key);
-                        scores.put(key,sco+score);
+                        float sco = (Float) scores.get(key).get("score");
+                        scores.get(key).put("score",sco+score);
                     }else {
-                        scores.put(key,score);
+                        Map<String,Object> scoremap = new HashMap<>(4);
+                        scoremap.put(abs,abs);
+                        scoremap.put(claims,claims);
+                        scoremap.put("score",score);
+                        scores.put(key,scoremap);
                     }
                 }
 
             } catch (Exception e) {
-                e.printStackTrace();
+                log.error(e.getMessage(),e);
             }finally {
                 if (st != null){
                     try {
@@ -162,27 +192,32 @@ public class SearchServiceImpl implements SearchService {
             }
         }
 
-        List<Map.Entry<String, Float>> list = new LinkedList<Map.Entry<String, Float>>(scores.entrySet());
-        Collections.sort(list,new Comparator<Map.Entry<String, Float>>() {
+        List<Map.Entry<String, Map<String,Object>>> list = new LinkedList<Map.Entry<String, Map<String,Object>>>(scores.entrySet());
+        Collections.sort(list,new Comparator<Map.Entry<String, Map<String,Object>>>() {
             @Override
-            public int compare(Map.Entry<String, Float> o1,
-                               Map.Entry<String, Float> o2) {
-                return o2.getValue().compareTo( o1.getValue());
+            public int compare(Map.Entry<String, Map<String,Object>> o1,
+                               Map.Entry<String, Map<String,Object>> o2) {
+                return ((Float)o2.getValue().get("score")).compareTo( (Float)o2.getValue().get("score"));
             }
         });
         int length = list.size() > num?num:list.size();
         for (int i=0;i<length;i++){
             String key = list.get(i).getKey();
+            Map<String,Object> key_value = list.get(i).getValue();
             String[] ids = key.split("_");
 
             for (int j=0;j<ids.length;j++){
                 String id = ids[j];
                 if (!StringUtil.empty(id)){
-                    docIds.add(id);
+                    Map<String,String> detail = new HashMap<>(3);
+                    detail.put(finaldocid,id);
+                    detail.put(claims,key_value.get(claims)+"");
+                    detail.put(abs,key_value.get(abs)+"");
+                    docIds.add(detail);
                 }
             }
         }
-        return null;
+        return docIds;
     }
 
 
@@ -253,6 +288,35 @@ public class SearchServiceImpl implements SearchService {
         return docIds;
     }
 
+    private Map<String,String> getContents2(ESConnection esConnection, String docId){
+        Map<String,String> detail = new HashMap<>(3);
+        Statement st=null;
+        try {
+            st = esConnection.createStatement();
+
+            String sql = "select title,abs,claims from en where docid='"+docId+"'";
+            ResultSet res = st.executeQuery(sql.toString());
+            while (res.next()){
+                detail.put(title,StringUtil.remove(res.getString(1)));
+                detail.put(abs,StringUtil.remove(res.getString(2)));
+                detail.put(claims,StringUtil.remove(res.getString(3)));
+//                contents.add(res.getString(3));
+            }
+        } catch (Exception e) {
+            log.error(e.getMessage(),e);
+        }finally {
+            if (st != null){
+                try {
+                    st.close();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+        log.info("=========== get origin patent content by docid ,docid is："+ docId + ",detail is :" + detail.toString());
+        return detail;
+
+    }
 
     private List<String> getContents(ESConnection esConnection, String docId){
 

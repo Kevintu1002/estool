@@ -3,7 +3,7 @@ package com.kevin.controller;
 import com.kevin.service.SearchService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
+
 
 @RestController
 @CrossOrigin
@@ -27,13 +27,13 @@ public class SearchController {
 
     /**
      * 接受输入CSV文件
-     * @param file
+     * @param filename
      * @return
      */
-    @PostMapping(value = "/searchByFile",produces = "application/json;charset=UTF-8")
-    public String searchByFile(@RequestParam(value = "file",required = true) MultipartFile file,
+    @GetMapping(value = "/searchByFile",produces = "application/json;charset=UTF-8")
+    public String searchByFile(@RequestParam(value = "filename",required = true) String filename,
                                @RequestParam(value = "num",required = false) Integer num){
-        return searchService.searchByFile(file,num);
+        return searchService.searchByFile(filename,num);
     }
 
 

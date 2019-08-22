@@ -158,8 +158,8 @@
                         <manifest>
                             <addClasspath>true</addClasspath>
                             <classpathPrefix>lib/</classpathPrefix>
-                            <mainClass>com.kevin.EsEngineApplication</mainClass>
-                            <!--<mainClass>com.kevin.app.App</mainClass>-->
+                            <!--<mainClass>com.kevin.EsEngineApplication</mainClass>-->
+                            <mainClass>com.kevin.app.Search</mainClass>
                         </manifest>
                     </archive>
                 </configuration>

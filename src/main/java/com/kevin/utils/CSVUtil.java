@@ -44,6 +44,24 @@ public class CSVUtil {
         return returnlist;
     }
 
+    public static List<String>  readCsvFile(String filePath) throws IOException{
+        // 第一参数：读取文件的路径 第二个参数：分隔符 第三个参数：字符集
+        CsvReader csvReader = new CsvReader(filePath, ',');
+        // 如果你的文件没有表头，这行不用执行
+        // 这行不要是为了从表头的下一行读，也就是过滤表头
+        List<String> returnlist = new ArrayList<>();
+        // 读取每行的内容
+        while (csvReader.readRecord()) {
+            /**
+             * 获取内容的两种方式
+             * 1. 通过下标获取  System.out.print(csvReader.get(2));
+             * 2. 通过表头的文字获取 System.out.println(" " + csvReader.get("稿件正文"));
+             */
+            returnlist.add(csvReader.get(0));
+        }
+        return returnlist;
+    }
+
     /**
      *
      * @param reader
