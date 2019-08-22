@@ -76,6 +76,25 @@
             <artifactId>jna</artifactId>
             <version>5.4.0</version>
         </dependency>
+        <!--解析csv-->
+        <dependency>
+            <groupId>net.sourceforge.javacsv</groupId>
+            <artifactId>javacsv</artifactId>
+            <version>2.0</version>
+        </dependency>
+
+        <!-- 引入poi，处理Excel-->
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi</artifactId>
+            <version>3.17</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi-ooxml</artifactId>
+            <version>3.17</version>
+        </dependency>
+
     </dependencies>
 
     <build>
@@ -139,8 +158,8 @@
                         <manifest>
                             <addClasspath>true</addClasspath>
                             <classpathPrefix>lib/</classpathPrefix>
-                            <!--<mainClass>com.kevin.EsEngineApplication</mainClass>-->
-                            <mainClass>com.kevin.app.App</mainClass>
+                            <mainClass>com.kevin.EsEngineApplication</mainClass>
+                            <!--<mainClass>com.kevin.app.App</mainClass>-->
                         </manifest>
                     </archive>
                 </configuration>

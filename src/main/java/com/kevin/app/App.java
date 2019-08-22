@@ -12,20 +12,20 @@ public class App {
         System.setProperty("es.set.netty.runtime.available.processors", "false");
     }
 
-    public static void main(String[] args){
-
-
-        String index = args[0];
-        String inputDir = args[1];
-        String dataType = args[2];
-        String url = args[3];
-        String indexName = args[4];
-
-        DataProducer dataProducer = new DataProducer(index,inputDir,dataType);
-        dataProducer.produce();
-        DataComsumer dataComsumer = new DataComsumer();
-        dataComsumer.comsume(url,indexName);
-
-
-    }
+//    public static void main(String[] args){
+//
+//
+//        String index = args[0];
+//        String inputDir = args[1];
+//        String dataType = args[2];
+//        String url = args[3];
+//        String indexName = args[4];
+//
+//        DataProducer dataProducer = new DataProducer(index,inputDir,dataType);
+//        dataProducer.produce();
+//        DataComsumer dataComsumer = new DataComsumer();
+//        dataComsumer.comsume(url,indexName);
+//
+//
+//    }
 }
