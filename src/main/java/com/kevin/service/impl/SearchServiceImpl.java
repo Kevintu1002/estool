@@ -114,11 +114,12 @@ public class SearchServiceImpl implements SearchService {
             }
 
         }
-        return null;
+        return csvoutdirpath;
     }
 
     private void outCsv(ESConnection esConnection,List<String> docIds,Integer num,String type) throws Exception{
-        String absoluteoutpath = csvoutdirpath + type + "_out.csv";
+        String uuid = UUID.randomUUID().toString().replace("-", "");
+        String absoluteoutpath = csvoutdirpath + type +"_"+ uuid +".csv";
         CsvWriter csvWriter = new CsvWriter(absoluteoutpath);
         int m = 1;
         for(String docid : docIds){
