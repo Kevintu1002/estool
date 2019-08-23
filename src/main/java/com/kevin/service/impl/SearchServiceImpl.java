@@ -38,6 +38,10 @@ public class SearchServiceImpl implements SearchService {
     @Value("${csv.out.dir.path}")
     private String csvoutdirpath="/data/disk1/patent/Django/media/csvout/";
 
+    @Value("${csv.result.dir.path}")
+    private String csvresultdirpath="/data/disk1/patent/Django/media/";
+
+
     @Value("${result.dir.path}")
     private String resultdirpath="/data/disk1/patent/Django/media/csvout/";
 
@@ -69,7 +73,7 @@ public class SearchServiceImpl implements SearchService {
     }
 
     @Override
-    public String searchByFile(String filename,Integer num) {
+    public String searchByFile(String filename,String type,Integer num) {
         JSONObject returnjson = new JSONObject();
         InputStream ins = null;
         Reader in = null;
@@ -99,11 +103,19 @@ public class SearchServiceImpl implements SearchService {
             Class.forName("com.bonc.usdp.sql4es.jdbc.ESDriver");
             ESConnection esConnection = (ESConnection) DriverManager.getConnection(esjdbcurl);
 
-            /**
-             * 生成导出CSV
-             */
-            outCsv(esConnection,docIds,num,abs);
-            outCsv(esConnection,docIds,num,claims);
+            if("1".equals(type)){
+                String filepath = outCsv1(esConnection,docIds,num);
+                returnjson.put("filepath",filepath);
+            }else{
+                /**
+                 * 生成导出CSV
+                 */
+                List<String> filepaths = new ArrayList<>(2);
+                filepaths.add(outCsv2(esConnection,docIds,num,abs));
+                filepaths.add(outCsv2(esConnection,docIds,num,claims));
+                returnjson.put("filepath",filepaths);
+            }
+            return returnjson.toJSONString();
 
         }catch (Exception e){
             log.error(e.getMessage(),e);
@@ -116,7 +128,7 @@ public class SearchServiceImpl implements SearchService {
             }
 
         }
-        return csvoutdirpath;
+        return null;
     }
 
     @Override
@@ -152,7 +164,27 @@ public class SearchServiceImpl implements SearchService {
         return null;
     }
 
-    private void outCsv(ESConnection esConnection,Map<String,String> docIds,Integer num,String type) throws Exception{
+    private String outCsv1(ESConnection esConnection,Map<String,String> docIds,Integer num) throws Exception{
+        String uuid = UUID.randomUUID().toString().replace("-", "");
+        String absoluteoutpath = csvresultdirpath +"result_"+ uuid +".csv";
+        CsvWriter csvWriter = new CsvWriter(absoluteoutpath);
+        Set<String> keynums = docIds.keySet();
+        int rownum = 1;
+        for(String m : keynums){
+            Map<String,String> contents = getContents2(esConnection,docIds.get(m));
+            List<Map<String,String>> searchRes = getCompareDocIds2(esConnection,contents,num);
+            //写入输出csv
+            for(Map<String,String> resdocid : searchRes){
+                String[] docids = {rownum + "",m,docIds.get(m),resdocid.get(finaldocid)};
+                csvWriter.writeRecord(docids);
+                rownum ++;
+            }
+        }
+        csvWriter.close();
+        return  absoluteoutpath;
+    }
+
+    private String outCsv2(ESConnection esConnection,Map<String,String> docIds,Integer num,String type) throws Exception{
         String uuid = UUID.randomUUID().toString().replace("-", "");
         String absoluteoutpath = csvoutdirpath + type +"_"+ uuid +".csv";
         CsvWriter csvWriter = new CsvWriter(absoluteoutpath);
@@ -169,6 +201,7 @@ public class SearchServiceImpl implements SearchService {
             }
         }
         csvWriter.close();
+        return absoluteoutpath;
     }
     private List<Map<String,String>> getCompareDocIds2(ESConnection esConnection,Map<String,String> contentdetail,int num){
 

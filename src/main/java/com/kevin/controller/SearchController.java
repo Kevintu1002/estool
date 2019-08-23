@@ -30,13 +30,18 @@ public class SearchController {
 
     /**
      * 接受输入CSV文件
-     * @param filename
+     * @param filename 输入
+     *  @param type 类型：1 - 不用苏大服务  2-使用苏大服务
      * @return
      */
     @GetMapping(value = "/searchByFile",produces = "application/json;charset=UTF-8")
     public String searchByFile(@RequestParam(value = "filename",required = true) String filename,
+                               @RequestParam(value = "type",required = false) String type,
                                @RequestParam(value = "num",required = false) Integer num){
-        return searchService.searchByFile(filename,num);
+        if(null == type){
+            type = "1";
+        }
+        return searchService.searchByFile(filename,type,num);
     }
 
     /**
