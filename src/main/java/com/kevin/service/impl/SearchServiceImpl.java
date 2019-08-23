@@ -39,8 +39,7 @@ public class SearchServiceImpl implements SearchService {
     private String csvoutdirpath="/data/disk1/patent/Django/media/csvout/";
 
     @Value("${csv.result.dir.path}")
-    private String csvresultdirpath="/data/disk1/patent/Django/media/";
-
+    private String csvresultdirpath="/tmp/";
 
     @Value("${result.dir.path}")
     private String resultdirpath="/data/disk1/patent/Django/media/csvout/";
@@ -168,18 +167,18 @@ public class SearchServiceImpl implements SearchService {
 
     private String outCsv1(ESConnection esConnection,Map<String,String> docIds,Integer num) throws Exception{
         String uuid = UUID.randomUUID().toString().replace("-", "");
-        String absoluteoutpath = csvresultdirpath +"result_"+ uuid +".csv";
+        String absoluteoutpath = csvresultdirpath +"sim_result.csv";
         CsvWriter csvWriter = new CsvWriter(absoluteoutpath);
         Set<String> keynums = docIds.keySet();
-        int rownum = 1;
         for(String m : keynums){
             Map<String,String> contents = getContents2(esConnection,docIds.get(m));
             List<Map<String,String>> searchRes = getCompareDocIds2(esConnection,contents,num);
             //写入输出csv
+            int  n = 1;
             for(Map<String,String> resdocid : searchRes){
-                String[] docids = {rownum + "",m,docIds.get(m),resdocid.get(finaldocid)};
+                String[] docids = {m,docIds.get(m),n+"",resdocid.get(finaldocid)};
                 csvWriter.writeRecord(docids);
-                rownum ++;
+                n ++;
             }
         }
         csvWriter.close();
