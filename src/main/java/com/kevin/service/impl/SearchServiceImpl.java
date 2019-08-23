@@ -79,7 +79,9 @@ public class SearchServiceImpl implements SearchService {
         Reader in = null;
         Map<String,String> docIds = new HashMap<>();
         try{
-            String absolutefilepath = csvorigindirpath + filename;
+//            String absolutefilepath = csvorigindirpath + filename;
+            String absolutefilepath = filename;
+
 
             log.info("====== The input file name is ："+absolutefilepath);
 
