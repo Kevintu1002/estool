@@ -4,6 +4,9 @@ import com.kevin.service.SearchService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
 
 @RestController
 @CrossOrigin
@@ -36,5 +39,14 @@ public class SearchController {
         return searchService.searchByFile(filename,num);
     }
 
-
+    /**
+     * 下载文件
+     * @param filename
+     * @return
+     */
+    @GetMapping(value = "/getResultFile",produces = "application/json;charset=UTF-8")
+    public String getResultFile(HttpServletRequest request, HttpServletResponse response,
+                                @RequestParam(value = "filename",required = true) String filename){
+        return searchService.getResultFile(request,response,filename);
+    }
 }

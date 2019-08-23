@@ -5,15 +5,14 @@ import com.bonc.usdp.sql4es.jdbc.ESConnection;
 import com.csvreader.CsvWriter;
 import com.kevin.service.SearchService;
 import com.kevin.utils.CSVUtil;
-import com.kevin.utils.ExcelUtil;
 import com.kevin.utils.StringUtil;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.poi.hssf.usermodel.HSSFWorkbook;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.io.*;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -39,6 +38,8 @@ public class SearchServiceImpl implements SearchService {
     @Value("${csv.out.dir.path}")
     private String csvoutdirpath="/data/disk1/patent/Django/media/csvout/";
 
+    @Value("${result.dir.path}")
+    private String resultdirpath="/data/disk1/patent/Django/media/csvout/";
 
     @Override
     public String search(String docId,int num) {
@@ -72,27 +73,28 @@ public class SearchServiceImpl implements SearchService {
         JSONObject returnjson = new JSONObject();
         InputStream ins = null;
         Reader in = null;
-        List<String> docIds = new ArrayList<>();
+        Map<String,String> docIds = new HashMap<>();
         try{
             String absolutefilepath = csvorigindirpath + filename;
 
             log.info("====== The input file name is ："+absolutefilepath);
 
             String filesubffix = filename.substring(filename.lastIndexOf(".")).toUpperCase();
-            if(filesubffix.contains("CSV")){
-                docIds = CSVUtil.readCsvFile(absolutefilepath);
-            }else if(filesubffix.contains("XLSX")){
-                XSSFWorkbook workbook = new XSSFWorkbook(new File(absolutefilepath));
-                docIds = ExcelUtil.readExcel(workbook,0,0);
-            }else if(filesubffix.contains("XLS")){
-                HSSFWorkbook workbook = new HSSFWorkbook(new FileInputStream(absolutefilepath));
-                docIds = ExcelUtil.readExcel(workbook,0,0);
-            }else{
-                returnjson.put("code","0000");
-                returnjson.put("flag",false);
-                returnjson.put("message","暂不支持该种文件类型");
-                return returnjson.toJSONString();
-            }
+            docIds = CSVUtil.readCsvFile(absolutefilepath);
+//            if(filesubffix.contains("CSV")){
+//                docIds = CSVUtil.readCsvFile(absolutefilepath);
+//            }else if(filesubffix.contains("XLSX")){
+//                XSSFWorkbook workbook = new XSSFWorkbook(new File(absolutefilepath));
+//                docIds = ExcelUtil.readExcel(workbook,0,0);
+//            }else if(filesubffix.contains("XLS")){
+//                HSSFWorkbook workbook = new HSSFWorkbook(new FileInputStream(absolutefilepath));
+//                docIds = ExcelUtil.readExcel(workbook,0,0);
+//            }else{
+//                returnjson.put("code","0000");
+//                returnjson.put("flag",false);
+//                returnjson.put("message","暂不支持该种文件类型");
+//                return returnjson.toJSONString();
+//            }
             if(null == num) num = 10;
             Class.forName("com.bonc.usdp.sql4es.jdbc.ESDriver");
             ESConnection esConnection = (ESConnection) DriverManager.getConnection(esjdbcurl);
@@ -117,25 +119,56 @@ public class SearchServiceImpl implements SearchService {
         return csvoutdirpath;
     }
 
-    private void outCsv(ESConnection esConnection,List<String> docIds,Integer num,String type) throws Exception{
+    @Override
+    public String getResultFile(HttpServletRequest request, HttpServletResponse response, String filename) {
+        String absolutefilepath = resultdirpath + filename;
+        response.setContentType("application/force-download");// 设置强制下载不打开
+        response.addHeader("Content-Disposition", "attachment;fileName=" + filename);// 设置文件名
+        byte[] buffer = new byte[1024];
+        BufferedInputStream bis = null;
+        try {
+            bis = new BufferedInputStream(new FileInputStream(absolutefilepath));
+            OutputStream os = new BufferedOutputStream(response.getOutputStream());
+            int i = bis.read(buffer);
+            while (i != -1) {
+                os.write(buffer, 0, i);
+                i = bis.read(buffer);
+            }
+
+            os.flush();
+            os.close();
+            return "下载成功";
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            if (bis != null) {
+                try {
+                    bis.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+        return null;
+    }
+
+    private void outCsv(ESConnection esConnection,Map<String,String> docIds,Integer num,String type) throws Exception{
         String uuid = UUID.randomUUID().toString().replace("-", "");
         String absoluteoutpath = csvoutdirpath + type +"_"+ uuid +".csv";
         CsvWriter csvWriter = new CsvWriter(absoluteoutpath);
-        int m = 1;
-        for(String docid : docIds){
-            Map<String,String> contents = getContents2(esConnection,docid);
+        Set<String> keynums = docIds.keySet();
+        for(String m : keynums){
+            Map<String,String> contents = getContents2(esConnection,docIds.get(m));
             List<Map<String,String>> searchRes = getCompareDocIds2(esConnection,contents,num);
             //写入输出csv
             int n = 1;
             for(Map<String,String> resdocid : searchRes){
-                String[] docids = {m +"",docid,contents.get(type),n+"",resdocid.get(finaldocid),resdocid.get(type)};
+                String[] docids = {m,docIds.get(m),contents.get(type),n+"",resdocid.get(finaldocid),resdocid.get(type)};
                 csvWriter.writeRecord(docids);
                 n ++;
             }
-            m++;
         }
         csvWriter.close();
-
     }
     private List<Map<String,String>> getCompareDocIds2(ESConnection esConnection,Map<String,String> contentdetail,int num){
 
