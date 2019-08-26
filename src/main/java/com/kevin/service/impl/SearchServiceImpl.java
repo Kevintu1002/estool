@@ -96,7 +96,7 @@ public class SearchServiceImpl implements SearchService {
                 ESConnection esConnection = (ESConnection) DriverManager.getConnection(esjdbcurl);
 
                 long start = System.currentTimeMillis();
-                List<String> lines = FileUtil.readFileContentToList(new File(absolutefilepath),"utf-8");
+                List<String> lines = FileUtil.readFileContentToList(absolutefilepath,"utf-8");
                 String filepath = outCsv3(esConnection,lines,num);
                 returnjson.put("filepath",filepath);
 
