@@ -7,6 +7,7 @@ import com.kevin.service.SearchService;
 import com.kevin.task.FindSimilarDoc;
 import com.kevin.thread.SearchDocThread;
 import com.kevin.utils.CSVUtil;
+import com.kevin.utils.FileUtil;
 import com.kevin.utils.StringUtil;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -90,6 +91,20 @@ public class SearchServiceImpl implements SearchService {
 
             log.info("====== The input file name is ："+absolutefilepath);
 
+            if("3".equals(type)){//测试中文
+                Class.forName("com.bonc.usdp.sql4es.jdbc.ESDriver");
+                ESConnection esConnection = (ESConnection) DriverManager.getConnection(esjdbcurl);
+
+                long start = System.currentTimeMillis();
+                List<String> lines = FileUtil.readFileContentToList(new File(absolutefilepath),"utf-8");
+                String filepath = outCsv3(esConnection,lines,num);
+                returnjson.put("filepath",filepath);
+
+                long end = System.currentTimeMillis();
+                System.out.println("耗时：" + (end - start) / 1000 + " s");
+                return returnjson.toJSONString();
+
+            }
             String filesubffix = filename.substring(filename.lastIndexOf(".")).toUpperCase();
             docIds = CSVUtil.readCsvFile(absolutefilepath);
 //            if(filesubffix.contains("CSV")){
@@ -255,6 +270,47 @@ public class SearchServiceImpl implements SearchService {
         csvWriter.close();
         return absoluteoutpath;
     }
+
+    private String outCsv3(ESConnection esConnection,List<String> docIds,Integer num) throws Exception{
+        String uuid = UUID.randomUUID().toString().replace("-", "");
+        String absoluteoutpath = csvresultdirpath +"sim_result.csv";
+
+        /**
+         * 1、首先解析csv文件，将序号、docid装入队列中
+         * 2、线程读取队列中额数据，进行处理，并将处理结果存入结果数据的队列中
+         * 3、当所以线程执行完毕，从结果队列中取出数据，写入到输出文件中
+         */
+        CsvWriter csvWriter = new CsvWriter(absoluteoutpath);
+
+        List<Future<List<String[]>>> results = new LinkedList<Future<List<String[]>>>();
+        ThreadPoolExecutor excutor = new ThreadPoolExecutor(5, Integer.parseInt(threadpoolsize), 0,
+                TimeUnit.SECONDS, new LinkedBlockingDeque<Runnable>(),
+                new ThreadPoolExecutor.CallerRunsPolicy());
+
+        int m = 1;
+        for(String docid : docIds){
+            FindSimilarDoc findSimilarDoc = new FindSimilarDoc(esConnection,m+"",docid,num);
+            Future<List<String[]>> result =  excutor.submit(findSimilarDoc);
+            results.add(result);
+            m ++;
+        }
+
+        for(Future<List<String[]>> doc : results){
+            List<String[]> docrows = doc.get();
+            docrows.forEach(docrow -> {
+                try{
+                    csvWriter.writeRecord(docrow);
+                }catch (Exception e){
+                    log.error("输出文件过程出现错误，内容为："+docrow);
+                }
+
+            });
+        }
+
+        csvWriter.close();
+        return  absoluteoutpath;
+    }
+
     private List<Map<String,String>> getCompareDocIds2(ESConnection esConnection,Map<String,String> contentdetail,int num){
 
         List<Map<String,String>> docIds = new ArrayList<>();

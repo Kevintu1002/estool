@@ -31,7 +31,7 @@ public class SearchController {
     /**
      * 接受输入CSV文件
      * @param filename 输入
-     *  @param type 类型：1 - 不用苏大服务  2-使用苏大服务
+     *  @param type 类型：1 - 不用苏大服务  2-使用苏大服务 3-测试中文
      * @return
      */
     @GetMapping(value = "/searchByFile",produces = "application/json;charset=UTF-8")
