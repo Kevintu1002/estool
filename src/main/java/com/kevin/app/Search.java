@@ -1,6 +1,9 @@
 package com.kevin.app;
 
+import com.alibaba.fastjson.JSONObject;
 import com.kevin.service.impl.SearchServiceImpl;
+
+import java.util.List;
 
 public class Search {
 
@@ -10,7 +13,7 @@ public class Search {
         String num = args[2];
         SearchServiceImpl searchServiceImpl = new SearchServiceImpl();
         String result = searchServiceImpl.searchByFile(filename,type, null == num? 20 : Integer.parseInt(num));
-        JSONObject returnjson = JSONObject.parseObject(datainfo);
+        JSONObject returnjson = JSONObject.parseObject(result);
         if("1".equals(type)){
             String resultpath = returnjson.get("filepath")+"";
             System.out.println(resultpath);

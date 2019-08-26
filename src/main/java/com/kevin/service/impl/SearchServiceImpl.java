@@ -4,6 +4,8 @@ import com.alibaba.fastjson.JSONObject;
 import com.bonc.usdp.sql4es.jdbc.ESConnection;
 import com.csvreader.CsvWriter;
 import com.kevin.service.SearchService;
+import com.kevin.task.FindSimilarDoc;
+import com.kevin.thread.SearchDocThread;
 import com.kevin.utils.CSVUtil;
 import com.kevin.utils.StringUtil;
 import org.apache.commons.logging.Log;
@@ -19,6 +21,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.*;
+import java.util.concurrent.*;
 
 @Service("searchService")
 public class SearchServiceImpl implements SearchService {
@@ -30,19 +33,23 @@ public class SearchServiceImpl implements SearchService {
     private static final String claims = "claims";
 
     @Value("${es.jdbc.url}")
-    private String esjdbcurl="jdbc:sql4es://202.112.195.83:9300/patent821v8?cluster.name=patent";
+    private String esjdbcurl = "jdbc:sql4es://202.112.195.83:9300/patent821v8?cluster.name=patent";
 
     @Value("${csv.origin.dir.path}")
-    private String csvorigindirpath="/data/disk1/patent/Django/media/filelist/";
+    private String csvorigindirpath = "/data/disk1/patent/Django/media/filelist/";
 
     @Value("${csv.out.dir.path}")
-    private String csvoutdirpath="/data/disk1/patent/Django/media/csvout/";
+    private String csvoutdirpath = "/data/disk1/patent/Django/media/csvout/";
 
     @Value("${csv.result.dir.path}")
-    private String csvresultdirpath="/tmp/";
+    private String csvresultdirpath = "/tmp/";
 
     @Value("${result.dir.path}")
-    private String resultdirpath="/data/disk1/patent/Django/media/csvout/";
+    private String resultdirpath = "/data/disk1/patent/Django/media/csvout/";
+
+    @Value("${threadpool.size}")
+    private String threadpoolsize = "10";
+
 
     @Override
     public String search(String docId,int num) {
@@ -105,8 +112,13 @@ public class SearchServiceImpl implements SearchService {
             ESConnection esConnection = (ESConnection) DriverManager.getConnection(esjdbcurl);
 
             if("1".equals(type)){
+                long start = System.currentTimeMillis();
+
                 String filepath = outCsv1(esConnection,docIds,num);
                 returnjson.put("filepath",filepath);
+
+                long end = System.currentTimeMillis();
+                System.out.println("耗时：" + (end - start) / 1000 + " s");
             }else{
                 /**
                  * 生成导出CSV
@@ -165,22 +177,42 @@ public class SearchServiceImpl implements SearchService {
         return null;
     }
 
+
     private String outCsv1(ESConnection esConnection,Map<String,String> docIds,Integer num) throws Exception{
         String uuid = UUID.randomUUID().toString().replace("-", "");
         String absoluteoutpath = csvresultdirpath +"sim_result.csv";
+
+        /**
+         * 1、首先解析csv文件，将序号、docid装入队列中
+         * 2、线程读取队列中额数据，进行处理，并将处理结果存入结果数据的队列中
+         * 3、当所以线程执行完毕，从结果队列中取出数据，写入到输出文件中
+         */
         CsvWriter csvWriter = new CsvWriter(absoluteoutpath);
         Set<String> keynums = docIds.keySet();
+
+        List<Future<List<String[]>>> results = new LinkedList<Future<List<String[]>>>();
+        ThreadPoolExecutor excutor = new ThreadPoolExecutor(5, Integer.parseInt(threadpoolsize), 0,
+                TimeUnit.SECONDS, new LinkedBlockingDeque<Runnable>(),
+                new ThreadPoolExecutor.CallerRunsPolicy());
+
         for(String m : keynums){
-            Map<String,String> contents = getContents2(esConnection,docIds.get(m));
-            List<Map<String,String>> searchRes = getCompareDocIds2(esConnection,contents,num);
-            //写入输出csv
-            int  n = 1;
-            for(Map<String,String> resdocid : searchRes){
-                String[] docids = {m,docIds.get(m),n+"",resdocid.get(finaldocid)};
-                csvWriter.writeRecord(docids);
-                n ++;
-            }
+            FindSimilarDoc findSimilarDoc = new FindSimilarDoc(esConnection,m,docIds.get(m),num);
+            Future<List<String[]>> result =  excutor.submit(findSimilarDoc);
+            results.add(result);
         }
+
+        for(Future<List<String[]>> doc : results){
+            List<String[]> docrows = doc.get();
+            docrows.forEach(docrow -> {
+                try{
+                    csvWriter.writeRecord(docrow);
+                }catch (Exception e){
+                    log.error("输出文件过程出现错误，内容为："+docrow);
+                }
+
+            });
+        }
+
         csvWriter.close();
         return  absoluteoutpath;
     }
