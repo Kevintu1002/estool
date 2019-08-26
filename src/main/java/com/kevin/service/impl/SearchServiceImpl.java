@@ -88,7 +88,6 @@ public class SearchServiceImpl implements SearchService {
 //            String absolutefilepath = csvorigindirpath + filename;
             String absolutefilepath = filename;
 
-
             log.info("====== The input file name is ："+absolutefilepath);
 
             String filesubffix = filename.substring(filename.lastIndexOf(".")).toUpperCase();
@@ -113,6 +112,8 @@ public class SearchServiceImpl implements SearchService {
 
             if("1".equals(type)){
                 long start = System.currentTimeMillis();
+
+//                String filepath = outCsv_back(esConnection,docIds,num);//单线程处理
 
                 String filepath = outCsv1(esConnection,docIds,num);
                 returnjson.put("filepath",filepath);
@@ -216,7 +217,25 @@ public class SearchServiceImpl implements SearchService {
         csvWriter.close();
         return  absoluteoutpath;
     }
-
+    private String outCsv_back(ESConnection esConnection,Map<String,String> docIds,Integer num) throws Exception{
+        String uuid = UUID.randomUUID().toString().replace("-", "");
+        String absoluteoutpath = csvresultdirpath +"sim_result.csv";
+        CsvWriter csvWriter = new CsvWriter(absoluteoutpath);
+        Set<String> keynums = docIds.keySet();
+        for(String m : keynums){
+            Map<String,String> contents = getContents2(esConnection,docIds.get(m));
+            List<Map<String,String>> searchRes = getCompareDocIds2(esConnection,contents,num);
+            //写入输出csv
+            int  n = 1;
+            for(Map<String,String> resdocid : searchRes){
+                String[] docids = {m,docIds.get(m),n+"",resdocid.get(finaldocid)};
+                csvWriter.writeRecord(docids);
+                n ++;
+            }
+        }
+        csvWriter.close();
+        return  absoluteoutpath;
+    }
     private String outCsv2(ESConnection esConnection,Map<String,String> docIds,Integer num,String type) throws Exception{
         String uuid = UUID.randomUUID().toString().replace("-", "");
         String absoluteoutpath = csvoutdirpath + type +"_"+ uuid +".csv";
