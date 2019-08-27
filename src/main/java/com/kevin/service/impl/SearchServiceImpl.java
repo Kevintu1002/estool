@@ -5,6 +5,7 @@ import com.bonc.usdp.sql4es.jdbc.ESConnection;
 import com.csvreader.CsvWriter;
 import com.kevin.service.SearchService;
 import com.kevin.task.FindSimilarDoc;
+import com.kevin.task.FindSimilarDoc2;
 import com.kevin.utils.CSVUtil;
 import com.kevin.utils.FileUtil;
 import com.kevin.utils.StringUtil;
@@ -33,7 +34,7 @@ public class SearchServiceImpl implements SearchService {
     private static final String claims = "claims";
 
     @Value("${es.jdbc.url}")
-    private String esjdbcurl = "jdbc:sql4es://202.112.195.83:9300/patent821v8?cluster.name=patent";
+    private String esjdbcurl = "jdbc:sql4es://202.112.195.83:9300/patent821v9?cluster.name=patent";
     @Value("${es.cn.jdbc.url}")
     private String cn_es_jdbcurl = "jdbc:sql4es://202.112.195.83:9300/patent821v13?cluster.name=patent";
 
@@ -100,11 +101,7 @@ public class SearchServiceImpl implements SearchService {
                 ESConnection escnConnection = (ESConnection) DriverManager.getConnection(cn_es_jdbcurl);
                 List<String> lines = FileUtil.readFileContentToListByLine(absolutefilepath,"utf-8");
 
-                List<String> filepaths = new ArrayList<>(2);
-                filepaths.add(outCsv4(esConnection,escnConnection,lines,num,abs));
-                filepaths.add(outCsv4(esConnection,escnConnection,lines,num,claims));
-                filepaths.add(outCsv4(esConnection,escnConnection,lines,num,title));
-                returnjson.put("filepath",filepaths);
+                returnjson.put("filepath",outCsv4(esConnection,escnConnection,lines,num,abs));
 
                 long end = System.currentTimeMillis();
                 System.out.println("耗时：" + (end - start) / 1000 + " s");
@@ -220,18 +217,18 @@ public class SearchServiceImpl implements SearchService {
         CsvWriter csvWriter = new CsvWriter(absoluteoutpath);
         Set<String> keynums = docIds.keySet();
 
-        List<Future<List<String[]>>> results = new LinkedList<Future<List<String[]>>>();
+        List<Future<List>> results = new LinkedList<Future<List>>();
         ThreadPoolExecutor excutor = new ThreadPoolExecutor(5, Integer.parseInt(threadpoolsize), 0,
                 TimeUnit.SECONDS, new LinkedBlockingDeque<Runnable>(),
                 new ThreadPoolExecutor.CallerRunsPolicy());
 
         for(String m : keynums){
             FindSimilarDoc findSimilarDoc = new FindSimilarDoc(esConnection,m,docIds.get(m),num,null);
-            Future<List<String[]>> result =  excutor.submit(findSimilarDoc);
+            Future<List> result =  excutor.submit(findSimilarDoc);
             results.add(result);
         }
 
-        for(Future<List<String[]>> doc : results){
+        for(Future<List> doc : results){
             List<String[]> docrows = doc.get();
             docrows.forEach(docrow -> {
                 try{
@@ -323,7 +320,7 @@ public class SearchServiceImpl implements SearchService {
          */
         CsvWriter csvWriter = new CsvWriter(absoluteoutpath);
 
-        List<Future<List<String[]>>> results = new LinkedList<Future<List<String[]>>>();
+        List<Future<List>> results = new LinkedList<Future<List>>();
         ThreadPoolExecutor excutor = new ThreadPoolExecutor(8, Integer.parseInt(threadpoolsize), 0,
                 TimeUnit.SECONDS, new LinkedBlockingDeque<Runnable>(),
                 new ThreadPoolExecutor.CallerRunsPolicy());
@@ -331,12 +328,12 @@ public class SearchServiceImpl implements SearchService {
         int m = 1;
         for(String docid : docIds){
             FindSimilarDoc findSimilarDoc = new FindSimilarDoc(esConnection,m+"",docid,num,null);
-            Future<List<String[]>> result =  excutor.submit(findSimilarDoc);
+            Future<List> result =  excutor.submit(findSimilarDoc);
             results.add(result);
             m ++;
         }
 
-        for(Future<List<String[]>> doc : results){
+        for(Future<List> doc : results){
             List<String[]> docrows = doc.get();
             docrows.forEach(docrow -> {
                 try{
@@ -360,38 +357,59 @@ public class SearchServiceImpl implements SearchService {
      * @return
      * @throws Exception
      */
-    private String outCsv4(ESConnection esConnection,ESConnection escnConnection,List<String> docIds,Integer num,String type) throws Exception{
+    private List<String> outCsv4(ESConnection esConnection,ESConnection escnConnection,List<String> docIds,Integer num,String type) throws Exception{
         String uuid = UUID.randomUUID().toString().replace("-", "");
-        String absoluteoutpath = csvoutdirpath + type +"_"+ uuid +".csv";
+//        String absoluteoutpath = csvoutdirpath + type +"_"+ uuid +".tsv";
 
-        List<Future<List<String[]>>> results = new LinkedList<Future<List<String[]>>>();
+        List<Future<Map>> results = new LinkedList<Future<Map>>();
         ThreadPoolExecutor excutor = new ThreadPoolExecutor(Integer.parseInt(threadpoolsize), Integer.parseInt(threadpoolsize), 0,
                 TimeUnit.SECONDS, new LinkedBlockingDeque<Runnable>(),
                 new ThreadPoolExecutor.CallerRunsPolicy());
 
-        CsvWriter csvWriter = new CsvWriter(absoluteoutpath);
         int m = 1;
         for(String docid : docIds){
-            FindSimilarDoc findSimilarDoc = new FindSimilarDoc(esConnection,escnConnection,m+"",docid,num,type);
-            Future<List<String[]>> result =  excutor.submit(findSimilarDoc);
+            FindSimilarDoc2 findSimilarDoc2 = new FindSimilarDoc2(esConnection,escnConnection,m+"",docid,num);
+            Future<Map> result =  excutor.submit(findSimilarDoc2);
             results.add(result);
             m ++;
         }
 
-        for(Future<List<String[]>> doc : results){
-            List<String[]> docrows = doc.get();
-            docrows.forEach(docrow -> {
-                try{
-                    csvWriter.writeRecord(docrow);
-                }catch (Exception e){
-                    log.error("输出文件过程出现错误，内容为："+docrow);
-                }
+        StringBuilder titlebuilder = new StringBuilder("");
+        StringBuilder claimbuilder = new StringBuilder("");
+        StringBuilder absbuilder = new StringBuilder("");
+        Map<String,List<String>> map = null;
+        for(Future<Map> doc : results){
+            map = doc.get();
+            List<String> titlesss = map.get(title);
+            for(String content : titlesss){
+                titlebuilder.append(content);
+            }
 
-            });
+            List<String> abssss = map.get(abs);
+            for(String content : abssss){
+                absbuilder.append(content);
+            }
+
+            List<String> claimssss = map.get(claims);
+            for(String content : claimssss){
+                claimbuilder.append(content);
+            }
+            map = null;
         }
 
-        csvWriter.close();
-        return absoluteoutpath;
+        String titlepath = csvoutdirpath + title +".tsv";
+        String claimpath = csvoutdirpath + claims +".tsv";
+        String abspath = csvoutdirpath + abs +".tsv";
+
+        FileUtil.writeContent(titlepath,titlebuilder.toString());
+        FileUtil.writeContent(claimpath,claimbuilder.toString());
+        FileUtil.writeContent(abspath,absbuilder.toString());
+
+        List<String> paths = new ArrayList<>(3);
+        paths.add(titlepath);
+        paths.add(claimpath);
+        paths.add(abspath);
+        return paths;
     }
 
     private List<Map<String,String>> getCompareDocIds2(ESConnection esConnection,Map<String,String> contentdetail,int num){

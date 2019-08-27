@@ -13,16 +13,15 @@ import java.sql.Statement;
 import java.util.*;
 import java.util.concurrent.Callable;
 
-public class FindSimilarDoc implements Callable<List>{
+public class FindSimilarDoc2 implements Callable<Map>{
 
-    Log log = LogFactory.getLog(FindSimilarDoc.class);
+    Log log = LogFactory.getLog(FindSimilarDoc2.class);
 
     private ESConnection esConnection;
     private ESConnection es_cn_Connection;
     private String sequence;
     private String docid;
     private Integer num;
-    private String outtype;
 
     private static final String finaldocid = "docid";
     private static final String title = "title";
@@ -38,64 +37,75 @@ public class FindSimilarDoc implements Callable<List>{
     private String cn_es_jdbcurl = "jdbc:sql4es://202.112.195.83:9300/patent821v13?cluster.name=patent";
 
 
-    public  FindSimilarDoc (ESConnection esConnection, String sequence, String docid, Integer num,String outtype){
+    public FindSimilarDoc2(ESConnection esConnection, String sequence, String docid, Integer num, String outtype){
         this.sequence = sequence;
         this.esConnection = esConnection;
         this.docid = docid;
         this.num = num;
-        this.outtype = outtype;
     }
-    public  FindSimilarDoc (ESConnection esConnection,ESConnection es_cn_Connection, String sequence, String docid, Integer num,String outtype){
+    public FindSimilarDoc2(ESConnection esConnection, ESConnection es_cn_Connection, String sequence, String docid, Integer num){
         this.sequence = sequence;
         this.esConnection = esConnection;
         this.es_cn_Connection = es_cn_Connection;
         this.docid = docid;
         this.num = num;
-        this.outtype = outtype;
     }
 
     @Override
-    public List call() throws Exception {
+    public Map call() throws Exception {
         //写入输出csv
         int  n = 1;
-        if(null != outtype){
-            if(null == esConnection || esConnection.isClosed()){
-                Class.forName("com.bonc.usdp.sql4es.jdbc.ESDriver");
-                esConnection = (ESConnection) DriverManager.getConnection(esjdbcurl);
-            }
-            if(null == es_cn_Connection || es_cn_Connection.isClosed()){
-                Class.forName("com.bonc.usdp.sql4es.jdbc.ESDriver");
-                es_cn_Connection = (ESConnection) DriverManager.getConnection(cn_es_jdbcurl);
-            }
 
-            //输出tsv文件
-            Map<String,String> contents = getContents2(es_cn_Connection,docid);
-            List<Map<String,String>> searchRes = getCompareDocIds2(esConnection,contents,num);
-            List<String> out2 = new ArrayList<>();
-            StringBuilder stringBuilder = new StringBuilder("");
-            for(Map<String,String> resdocid : searchRes){
-                stringBuilder.append(sequence + "\t");
-                stringBuilder.append(docid + "\t");
-                stringBuilder.append(contents.get(outtype) + "\t");
-                stringBuilder.append(n + "\t");
-                stringBuilder.append(resdocid.get(finaldocid) + "\t");
-                stringBuilder.append(resdocid.get(outtype) + "\n");
-                n ++;
-            }
-            out2.add(stringBuilder.toString());
-            return out2;
-        }else{
-            List<String[]> out = new ArrayList<>();
-            Map<String,String> contents = getContents2(esConnection,docid);
-            List<Map<String,String>> searchRes = getCompareDocIds2(esConnection,contents,num);
-
-            for(Map<String,String> resdocid : searchRes){
-                String[] docids = {sequence,docid,n+"",resdocid.get(finaldocid)};
-                out.add(docids);
-                n ++;
-            }
-            return out;
+        if(null == esConnection || esConnection.isClosed()){
+            Class.forName("com.bonc.usdp.sql4es.jdbc.ESDriver");
+            esConnection = (ESConnection) DriverManager.getConnection(esjdbcurl);
         }
+        if(null == es_cn_Connection || es_cn_Connection.isClosed()){
+            Class.forName("com.bonc.usdp.sql4es.jdbc.ESDriver");
+            es_cn_Connection = (ESConnection) DriverManager.getConnection(cn_es_jdbcurl);
+        }
+
+        //输出tsv文件
+        Map<String,String> contents = getContents2(es_cn_Connection,docid);
+        List<Map<String,String>> searchRes = getCompareDocIds2(esConnection,contents,num);
+        List<String> titles = new ArrayList<>();
+        List<String> abss = new ArrayList<>();
+        List<String> claimss = new ArrayList<>();
+        StringBuilder titlebuilder = new StringBuilder("");
+        StringBuilder claimbuilder = new StringBuilder("");
+        StringBuilder absbuilder = new StringBuilder("");
+        for(Map<String,String> resdocid : searchRes){
+            titlebuilder.append(sequence + "\t");
+            titlebuilder.append(docid + "\t");
+            titlebuilder.append(contents.get(title) + "\t");
+            titlebuilder.append(n + "\t");
+            titlebuilder.append(resdocid.get(finaldocid) + "\t");
+            titlebuilder.append(resdocid.get(title) + "\n");
+
+            claimbuilder.append(sequence + "\t");
+            claimbuilder.append(docid + "\t");
+            claimbuilder.append(contents.get(claims) + "\t");
+            claimbuilder.append(n + "\t");
+            claimbuilder.append(resdocid.get(finaldocid) + "\t");
+            claimbuilder.append(resdocid.get(claims) + "\n");
+
+            absbuilder.append(sequence + "\t");
+            absbuilder.append(docid + "\t");
+            absbuilder.append(contents.get(abs) + "\t");
+            absbuilder.append(n + "\t");
+            absbuilder.append(resdocid.get(finaldocid) + "\t");
+            absbuilder.append(resdocid.get(abs) + "\n");
+            n ++;
+        }
+        titles.add(titlebuilder.toString());
+        abss.add(absbuilder.toString());
+        claimss.add(claimbuilder.toString());
+
+        Map out2 = new HashMap(3);
+        out2.put(title,titles);
+        out2.put(abs,abss);
+        out2.put(claims,claimss);
+        return out2;
 
     }
 
