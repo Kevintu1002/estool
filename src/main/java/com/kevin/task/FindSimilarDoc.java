@@ -22,6 +22,7 @@ public class FindSimilarDoc implements Callable<List<String[]>>{
     private String sequence;
     private String docid;
     private Integer num;
+    private String outtype;
 
     private static final String finaldocid = "docid";
     private static final String title = "title";
@@ -31,11 +32,12 @@ public class FindSimilarDoc implements Callable<List<String[]>>{
     @Value("${csv.result.dir.path}")
     private String csvresultdirpath="/tmp/";
 
-    public FindSimilarDoc (ESConnection esConnection, String sequence, String docid, Integer num){
+    public  FindSimilarDoc (ESConnection esConnection, String sequence, String docid, Integer num,String outtype){
         this.sequence = sequence;
         this.esConnection = esConnection;
         this.docid = docid;
         this.num = num;
+        this.outtype = outtype;
     }
 
     @Override
@@ -45,11 +47,20 @@ public class FindSimilarDoc implements Callable<List<String[]>>{
         List<String[]> out = new ArrayList<>();
         //写入输出csv
         int  n = 1;
-        for(Map<String,String> resdocid : searchRes){
-            String[] docids = {sequence,docid,n+"",resdocid.get(finaldocid)};
-            out.add(docids);
-            n ++;
+        if(null != outtype){
+            for(Map<String,String> resdocid : searchRes){
+                String[] docids = {sequence,docid,contents.get(outtype),n+"",resdocid.get(finaldocid),resdocid.get(outtype)};
+                out.add(docids);
+                n ++;
+            }
+        }else{
+            for(Map<String,String> resdocid : searchRes){
+                String[] docids = {sequence,docid,n+"",resdocid.get(finaldocid)};
+                out.add(docids);
+                n ++;
+            }
         }
+
         try {
             SemilarDocQueue.push(out);
         }catch (Exception e){

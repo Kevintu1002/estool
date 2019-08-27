@@ -5,7 +5,6 @@ import com.bonc.usdp.sql4es.jdbc.ESConnection;
 import com.csvreader.CsvWriter;
 import com.kevin.service.SearchService;
 import com.kevin.task.FindSimilarDoc;
-import com.kevin.thread.SearchDocThread;
 import com.kevin.utils.CSVUtil;
 import com.kevin.utils.FileUtil;
 import com.kevin.utils.StringUtil;
@@ -223,7 +222,7 @@ public class SearchServiceImpl implements SearchService {
                 new ThreadPoolExecutor.CallerRunsPolicy());
 
         for(String m : keynums){
-            FindSimilarDoc findSimilarDoc = new FindSimilarDoc(esConnection,m,docIds.get(m),num);
+            FindSimilarDoc findSimilarDoc = new FindSimilarDoc(esConnection,m,docIds.get(m),num,null);
             Future<List<String[]>> result =  excutor.submit(findSimilarDoc);
             results.add(result);
         }
@@ -327,7 +326,7 @@ public class SearchServiceImpl implements SearchService {
 
         int m = 1;
         for(String docid : docIds){
-            FindSimilarDoc findSimilarDoc = new FindSimilarDoc(esConnection,m+"",docid,num);
+            FindSimilarDoc findSimilarDoc = new FindSimilarDoc(esConnection,m+"",docid,num,null);
             Future<List<String[]>> result =  excutor.submit(findSimilarDoc);
             results.add(result);
             m ++;
@@ -370,7 +369,7 @@ public class SearchServiceImpl implements SearchService {
         CsvWriter csvWriter = new CsvWriter(absoluteoutpath);
         int m = 1;
         for(String docid : docIds){
-            FindSimilarDoc findSimilarDoc = new FindSimilarDoc(esConnection,m+"",docid,num);
+            FindSimilarDoc findSimilarDoc = new FindSimilarDoc(esConnection,m+"",docid,num,type);
             Future<List<String[]>> result =  excutor.submit(findSimilarDoc);
             results.add(result);
             m ++;
