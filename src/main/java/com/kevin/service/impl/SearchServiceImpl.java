@@ -34,6 +34,8 @@ public class SearchServiceImpl implements SearchService {
 
     @Value("${es.jdbc.url}")
     private String esjdbcurl = "jdbc:sql4es://202.112.195.83:9300/patent821v8?cluster.name=patent";
+    @Value("${es.cn.jdbc.url}")
+    private String cn_es_jdbcurl = "jdbc:sql4es://202.112.195.83:9300/patent821v13?cluster.name=patent";
 
     @Value("${csv.origin.dir.path}")
     private String csvorigindirpath = "/data/disk1/patent/Django/media/filelist/";
@@ -93,11 +95,14 @@ public class SearchServiceImpl implements SearchService {
             if("3".equals(type)){//测试中文
                 long start = System.currentTimeMillis();
 
+                Class.forName("com.bonc.usdp.sql4es.jdbc.ESDriver");
+                ESConnection esConnection = (ESConnection) DriverManager.getConnection(esjdbcurl);
+                ESConnection escnConnection = (ESConnection) DriverManager.getConnection(cn_es_jdbcurl);
                 List<String> lines = FileUtil.readFileContentToListByLine(absolutefilepath,"utf-8");
 
                 List<String> filepaths = new ArrayList<>(2);
-                filepaths.add(outCsv4(lines,num,abs));
-                filepaths.add(outCsv4(lines,num,claims));
+                filepaths.add(outCsv4(esConnection,escnConnection,lines,num,abs));
+                filepaths.add(outCsv4(esConnection,escnConnection,lines,num,claims));
                 returnjson.put("filepath",filepaths);
 
                 long end = System.currentTimeMillis();
@@ -354,7 +359,7 @@ public class SearchServiceImpl implements SearchService {
      * @return
      * @throws Exception
      */
-    private String outCsv4(List<String> docIds,Integer num,String type) throws Exception{
+    private String outCsv4(ESConnection esConnection,ESConnection escnConnection,List<String> docIds,Integer num,String type) throws Exception{
         String uuid = UUID.randomUUID().toString().replace("-", "");
         String absoluteoutpath = csvoutdirpath + type +"_"+ uuid +".csv";
 
@@ -366,7 +371,7 @@ public class SearchServiceImpl implements SearchService {
         CsvWriter csvWriter = new CsvWriter(absoluteoutpath);
         int m = 1;
         for(String docid : docIds){
-            FindSimilarDoc findSimilarDoc = new FindSimilarDoc(null,m+"",docid,num,type);
+            FindSimilarDoc findSimilarDoc = new FindSimilarDoc(esConnection,escnConnection,m+"",docid,num,type);
             Future<List<String[]>> result =  excutor.submit(findSimilarDoc);
             results.add(result);
             m ++;

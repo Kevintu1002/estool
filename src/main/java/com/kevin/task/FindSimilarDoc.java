@@ -20,6 +20,7 @@ public class FindSimilarDoc implements Callable<List<String[]>>{
     Log log = LogFactory.getLog(SearchDocThread.class);
 
     private ESConnection esConnection;
+    private ESConnection es_cn_Connection;
     private String sequence;
     private String docid;
     private Integer num;
@@ -36,12 +37,17 @@ public class FindSimilarDoc implements Callable<List<String[]>>{
     @Value("${es.jdbc.url}")
     private String esjdbcurl = "jdbc:sql4es://202.112.195.83:9300/patent821v8?cluster.name=patent";
 
-    @Value("${es.cn.jdbc.url}")
-    private String cn_es_jdbcurl = "jdbc:sql4es://202.112.195.83:9300/patent821v13?cluster.name=patent";
-
     public  FindSimilarDoc (ESConnection esConnection, String sequence, String docid, Integer num,String outtype){
         this.sequence = sequence;
         this.esConnection = esConnection;
+        this.docid = docid;
+        this.num = num;
+        this.outtype = outtype;
+    }
+    public  FindSimilarDoc (ESConnection esConnection,ESConnection es_cn_Connection, String sequence, String docid, Integer num,String outtype){
+        this.sequence = sequence;
+        this.esConnection = esConnection;
+        this.es_cn_Connection = es_cn_Connection;
         this.docid = docid;
         this.num = num;
         this.outtype = outtype;
@@ -54,10 +60,6 @@ public class FindSimilarDoc implements Callable<List<String[]>>{
         //写入输出csv
         int  n = 1;
         if(null != outtype){
-            Class.forName("com.bonc.usdp.sql4es.jdbc.ESDriver");
-            ESConnection es_cn_Connection = (ESConnection) DriverManager.getConnection(cn_es_jdbcurl);
-            ESConnection esConnection = (ESConnection) DriverManager.getConnection(cn_es_jdbcurl);
-
             Map<String,String> contents = getContents2(es_cn_Connection,docid);
             List<Map<String,String>> searchRes = getCompareDocIds2(esConnection,contents,num);
 
@@ -66,8 +68,6 @@ public class FindSimilarDoc implements Callable<List<String[]>>{
                 out.add(docids);
                 n ++;
             }
-            es_cn_Connection.close();
-            esConnection.close();
         }else{
             Map<String,String> contents = getContents2(esConnection,docid);
             List<Map<String,String>> searchRes = getCompareDocIds2(esConnection,contents,num);
@@ -77,7 +77,6 @@ public class FindSimilarDoc implements Callable<List<String[]>>{
                 out.add(docids);
                 n ++;
             }
-            esConnection.close();
         }
 
         try {
