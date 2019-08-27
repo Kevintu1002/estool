@@ -96,9 +96,11 @@ public class SearchServiceImpl implements SearchService {
                 ESConnection esConnection = (ESConnection) DriverManager.getConnection(esjdbcurl);
 
                 long start = System.currentTimeMillis();
-                List<String> lines = FileUtil.readFileContentToListByLine(absolutefilepath,"utf-8");
-                String filepath = outCsv3(esConnection,lines,num);
-                returnjson.put("filepath",filepath);
+
+                List<String> filepaths = new ArrayList<>(2);
+                filepaths.add(outCsv4(esConnection,docIds,num,abs));
+                filepaths.add(outCsv4(esConnection,docIds,num,claims));
+                returnjson.put("filepath",filepaths);
 
                 long end = System.currentTimeMillis();
                 System.out.println("耗时：" + (end - start) / 1000 + " s");
@@ -194,6 +196,14 @@ public class SearchServiceImpl implements SearchService {
     }
 
 
+    /**
+     * type=1 多线程处理
+     * @param esConnection
+     * @param docIds
+     * @param num
+     * @return
+     * @throws Exception
+     */
     private String outCsv1(ESConnection esConnection,Map<String,String> docIds,Integer num) throws Exception{
         String uuid = UUID.randomUUID().toString().replace("-", "");
         String absoluteoutpath = csvresultdirpath +"sim_result.csv";
@@ -232,7 +242,16 @@ public class SearchServiceImpl implements SearchService {
         csvWriter.close();
         return  absoluteoutpath;
     }
-    private String outCsv_back(ESConnection esConnection,Map<String,String> docIds,Integer num) throws Exception{
+
+    /**
+     * type = 1 单线程处理
+     * @param esConnection
+     * @param docIds
+     * @param num
+     * @return
+     * @throws Exception
+     */
+    private String outCsv1_back(ESConnection esConnection,Map<String,String> docIds,Integer num) throws Exception{
         String uuid = UUID.randomUUID().toString().replace("-", "");
         String absoluteoutpath = csvresultdirpath +"sim_result.csv";
         CsvWriter csvWriter = new CsvWriter(absoluteoutpath);
@@ -251,6 +270,16 @@ public class SearchServiceImpl implements SearchService {
         csvWriter.close();
         return  absoluteoutpath;
     }
+
+    /**
+     * type = 2 单线程处理 生成两个csv文件
+     * @param esConnection
+     * @param docIds
+     * @param num
+     * @param type
+     * @return
+     * @throws Exception
+     */
     private String outCsv2(ESConnection esConnection,Map<String,String> docIds,Integer num,String type) throws Exception{
         String uuid = UUID.randomUUID().toString().replace("-", "");
         String absoluteoutpath = csvoutdirpath + type +"_"+ uuid +".csv";
@@ -271,6 +300,14 @@ public class SearchServiceImpl implements SearchService {
         return absoluteoutpath;
     }
 
+    /**
+     * type = 3 多线程处理，生成最终文件
+     * @param esConnection
+     * @param docIds
+     * @param num
+     * @return
+     * @throws Exception
+     */
     private String outCsv3(ESConnection esConnection,List<String> docIds,Integer num) throws Exception{
         String uuid = UUID.randomUUID().toString().replace("-", "");
         String absoluteoutpath = csvresultdirpath +"sim_result.csv";
@@ -283,7 +320,7 @@ public class SearchServiceImpl implements SearchService {
         CsvWriter csvWriter = new CsvWriter(absoluteoutpath);
 
         List<Future<List<String[]>>> results = new LinkedList<Future<List<String[]>>>();
-        ThreadPoolExecutor excutor = new ThreadPoolExecutor(5, Integer.parseInt(threadpoolsize), 0,
+        ThreadPoolExecutor excutor = new ThreadPoolExecutor(8, Integer.parseInt(threadpoolsize), 0,
                 TimeUnit.SECONDS, new LinkedBlockingDeque<Runnable>(),
                 new ThreadPoolExecutor.CallerRunsPolicy());
 
@@ -309,6 +346,49 @@ public class SearchServiceImpl implements SearchService {
 
         csvWriter.close();
         return  absoluteoutpath;
+    }
+
+    /**
+     * type = 3 多线程处理 生成中间两个csv文件
+     * @param esConnection
+     * @param docIds
+     * @param num
+     * @param type
+     * @return
+     * @throws Exception
+     */
+    private String outCsv4(ESConnection esConnection,Map<String,String> docIds,Integer num,String type) throws Exception{
+        String uuid = UUID.randomUUID().toString().replace("-", "");
+        String absoluteoutpath = csvoutdirpath + type +"_"+ uuid +".csv";
+
+        List<Future<List<String[]>>> results = new LinkedList<Future<List<String[]>>>();
+        ThreadPoolExecutor excutor = new ThreadPoolExecutor(Integer.parseInt(threadpoolsize), Integer.parseInt(threadpoolsize), 0,
+                TimeUnit.SECONDS, new LinkedBlockingDeque<Runnable>(),
+                new ThreadPoolExecutor.CallerRunsPolicy());
+
+        CsvWriter csvWriter = new CsvWriter(absoluteoutpath);
+        Set<String> keynums = docIds.keySet();
+
+        for(String m : keynums){
+            FindSimilarDoc findSimilarDoc = new FindSimilarDoc(esConnection,m,docIds.get(m),num);
+            Future<List<String[]>> result =  excutor.submit(findSimilarDoc);
+            results.add(result);
+        }
+
+        for(Future<List<String[]>> doc : results){
+            List<String[]> docrows = doc.get();
+            docrows.forEach(docrow -> {
+                try{
+                    csvWriter.writeRecord(docrow);
+                }catch (Exception e){
+                    log.error("输出文件过程出现错误，内容为："+docrow);
+                }
+
+            });
+        }
+
+        csvWriter.close();
+        return absoluteoutpath;
     }
 
     private List<Map<String,String>> getCompareDocIds2(ESConnection esConnection,Map<String,String> contentdetail,int num){
