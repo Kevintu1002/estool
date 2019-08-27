@@ -133,6 +133,23 @@ public class FileUtil {
 
     }
 
+    /**
+     * 追加写入文本
+     * @param filePath
+     * @param content
+     */
+    public static void writeContentAppend(String filePath, String content) {
+        try {
+            //构造函数中的第二个参数true表示以追加形式写文件
+            FileWriter fw = new FileWriter(filePath,true);
+            fw.write(content);
+            fw.close();
+        } catch (IOException e) {
+            System.out.println("文件写入失败！" + e);
+        }
+    }
+
+
     public static void main(String[] args){
     }
 }

@@ -378,32 +378,102 @@ public class SearchServiceImpl implements SearchService {
         StringBuilder claimbuilder = new StringBuilder("");
         StringBuilder absbuilder = new StringBuilder("");
         Map<String,List<String>> map = null;
-        for(Future<Map> doc : results){
-            map = doc.get();
-            List<String> titlesss = map.get(title);
-            for(String content : titlesss){
-                titlebuilder.append(content);
-            }
-
-            List<String> abssss = map.get(abs);
-            for(String content : abssss){
-                absbuilder.append(content);
-            }
-
-            List<String> claimssss = map.get(claims);
-            for(String content : claimssss){
-                claimbuilder.append(content);
-            }
-            map = null;
-        }
-
         String titlepath = csvoutdirpath + title +".tsv";
         String claimpath = csvoutdirpath + claims +".tsv";
         String abspath = csvoutdirpath + abs +".tsv";
 
-        FileUtil.writeContent(titlepath,titlebuilder.toString());
-        FileUtil.writeContent(claimpath,claimbuilder.toString());
-        FileUtil.writeContent(abspath,absbuilder.toString());
+        if(results.size() > 10){
+            //考题数
+            int n = results.size() % 10 == 0 ? results.size() / 10 :  results.size() / 10 + 1;
+
+            //前10个数写入文件
+            for(int j = 0 ; j < 10; j ++){
+                map =  results.get(j).get();
+                List<String> titlesss = map.get(title);
+                for(String content : titlesss){
+                    titlebuilder.append(content);
+                }
+
+                List<String> abssss = map.get(abs);
+                for(String content : abssss){
+                    absbuilder.append(content);
+                }
+
+                List<String> claimssss = map.get(claims);
+                for(String content : claimssss){
+                    claimbuilder.append(content);
+                }
+            }
+
+            FileUtil.writeContent(titlepath,titlebuilder.toString());
+            FileUtil.writeContent(claimpath,claimbuilder.toString());
+            FileUtil.writeContent(abspath,absbuilder.toString());
+
+            titlebuilder = new StringBuilder("");
+            claimbuilder = new StringBuilder("");
+            absbuilder = new StringBuilder("");
+
+            for(int i = 1;i < n ; i ++){//每10个一组进行一轮遍历
+                for(int j = i * 10; j < (i+1) * 10; j ++){
+                    if(j >= n){
+                        break;
+                    }
+                    map =  results.get(j).get();
+                    List<String> titlesss = map.get(title);
+                    for(String content : titlesss){
+                        titlebuilder.append(content);
+                    }
+
+                    List<String> abssss = map.get(abs);
+                    for(String content : abssss){
+                        absbuilder.append(content);
+                    }
+
+                    List<String> claimssss = map.get(claims);
+                    for(String content : claimssss){
+                        claimbuilder.append(content);
+                    }
+                }
+
+                FileUtil.writeContentAppend(titlepath,titlebuilder.toString());
+                FileUtil.writeContentAppend(claimpath,claimbuilder.toString());
+                FileUtil.writeContentAppend(abspath,absbuilder.toString());
+
+                //追加文件内容
+                titlebuilder = new StringBuilder("");
+                claimbuilder = new StringBuilder("");
+                absbuilder = new StringBuilder("");
+
+            }
+        }else{//小于10
+            for(Future<Map> doc : results){
+                map = doc.get();
+                List<String> titlesss = map.get(title);
+                for(String content : titlesss){
+                    titlebuilder.append(content);
+                }
+
+                List<String> abssss = map.get(abs);
+                for(String content : abssss){
+                    absbuilder.append(content);
+                }
+
+                List<String> claimssss = map.get(claims);
+                for(String content : claimssss){
+                    //截取claim
+                    if(content.length() > 5000){
+                        content = content.substring(0,5000);
+                    }
+                    claimbuilder.append(content);
+                }
+                map = null;
+            }
+            FileUtil.writeContent(titlepath,titlebuilder.toString());
+            FileUtil.writeContent(claimpath,claimbuilder.toString());
+            FileUtil.writeContent(abspath,absbuilder.toString());
+        }
+
+
 
         List<String> paths = new ArrayList<>(3);
         paths.add(titlepath);

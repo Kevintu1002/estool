@@ -136,7 +136,8 @@ public class FindSimilarDoc2 implements Callable<Map>{
                 }
             }
         }
-        log.info("=========== get origin patent content by docid ,docid is："+ docId + ",detail is :" + detail.toString());
+//        log.info("=========== get origin patent content by docid ,docid is："+ docId + ",detail is :" + detail.toString());
+        log.info("=========== get origin patent content by docid ,docid is："+ docId );
         return detail;
 
     }

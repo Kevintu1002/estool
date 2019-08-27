@@ -6,7 +6,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Value;
 
-import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -58,44 +57,17 @@ public class FindSimilarDoc implements Callable<List>{
     public List call() throws Exception {
         //写入输出csv
         int  n = 1;
-        if(null != outtype){
-            if(null == esConnection || esConnection.isClosed()){
-                Class.forName("com.bonc.usdp.sql4es.jdbc.ESDriver");
-                esConnection = (ESConnection) DriverManager.getConnection(esjdbcurl);
-            }
-            if(null == es_cn_Connection || es_cn_Connection.isClosed()){
-                Class.forName("com.bonc.usdp.sql4es.jdbc.ESDriver");
-                es_cn_Connection = (ESConnection) DriverManager.getConnection(cn_es_jdbcurl);
-            }
 
-            //输出tsv文件
-            Map<String,String> contents = getContents2(es_cn_Connection,docid);
-            List<Map<String,String>> searchRes = getCompareDocIds2(esConnection,contents,num);
-            List<String> out2 = new ArrayList<>();
-            StringBuilder stringBuilder = new StringBuilder("");
-            for(Map<String,String> resdocid : searchRes){
-                stringBuilder.append(sequence + "\t");
-                stringBuilder.append(docid + "\t");
-                stringBuilder.append(contents.get(outtype) + "\t");
-                stringBuilder.append(n + "\t");
-                stringBuilder.append(resdocid.get(finaldocid) + "\t");
-                stringBuilder.append(resdocid.get(outtype) + "\n");
-                n ++;
-            }
-            out2.add(stringBuilder.toString());
-            return out2;
-        }else{
-            List<String[]> out = new ArrayList<>();
-            Map<String,String> contents = getContents2(esConnection,docid);
-            List<Map<String,String>> searchRes = getCompareDocIds2(esConnection,contents,num);
+        List<String[]> out = new ArrayList<>();
+        Map<String,String> contents = getContents2(esConnection,docid);
+        List<Map<String,String>> searchRes = getCompareDocIds2(esConnection,contents,num);
 
-            for(Map<String,String> resdocid : searchRes){
-                String[] docids = {sequence,docid,n+"",resdocid.get(finaldocid)};
-                out.add(docids);
-                n ++;
-            }
-            return out;
+        for(Map<String,String> resdocid : searchRes){
+            String[] docids = {sequence,docid,n+"",resdocid.get(finaldocid)};
+            out.add(docids);
+            n ++;
         }
+        return out;
 
     }
 
@@ -113,7 +85,6 @@ public class FindSimilarDoc implements Callable<List>{
                 detail.put(abs,res.getString(2));
                 detail.put(claims,res.getString(3));
                 detail.put(pdate,res.getString(4));
-//                contents.add(res.getString(3));
             }
         } catch (Exception e) {
             log.error(e.getMessage(),e);
