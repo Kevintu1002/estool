@@ -96,7 +96,7 @@ public class SearchServiceImpl implements SearchService {
                 Class.forName("com.bonc.usdp.sql4es.jdbc.ESDriver");
                 ESConnection esConnection = (ESConnection) DriverManager.getConnection(esjdbcurl);
 
-                List<String> lines = FileUtil.readFileContentToList(new File(absolutefilepath),"utf-8");
+                List<String> lines = FileUtil.readFileContentToListByLine(absolutefilepath,"utf-8");
 
                 List<String> filepaths = new ArrayList<>(2);
                 filepaths.add(outCsv4(esConnection,lines,num,abs));
