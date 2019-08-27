@@ -8,7 +8,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Value;
 
-import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -145,16 +144,16 @@ public class FindSimilarDoc implements Callable<List<String[]>>{
                     }
                     String appId = rs.getString(2);
                     float score = rs.getFloat(3);
-                    String abs = rs.getString(4);
-                    String claims = rs.getString(5);
+                    String abs2 = rs.getString(4);
+                    String claims2 = rs.getString(5);
                     String key = appId+"_"+docId;
                     if (scores.containsKey(key)){
                         float sco = (Float) scores.get(key).get("score");
                         scores.get(key).put("score",sco+score);
                     }else {
                         Map<String,Object> scoremap = new HashMap<>(4);
-                        scoremap.put(abs,abs);
-                        scoremap.put(claims,claims);
+                        scoremap.put(abs,abs2);
+                        scoremap.put(claims,claims2);
                         scoremap.put("score",score);
                         scores.put(key,scoremap);
                     }
