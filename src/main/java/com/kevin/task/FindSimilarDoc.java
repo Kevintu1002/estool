@@ -66,6 +66,8 @@ public class FindSimilarDoc implements Callable<List<String[]>>{
                 out.add(docids);
                 n ++;
             }
+            es_cn_Connection.close();
+            esConnection.close();
         }else{
             Map<String,String> contents = getContents2(esConnection,docid);
             List<Map<String,String>> searchRes = getCompareDocIds2(esConnection,contents,num);
@@ -75,6 +77,7 @@ public class FindSimilarDoc implements Callable<List<String[]>>{
                 out.add(docids);
                 n ++;
             }
+            esConnection.close();
         }
 
         try {
