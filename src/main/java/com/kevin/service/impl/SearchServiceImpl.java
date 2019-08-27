@@ -92,14 +92,15 @@ public class SearchServiceImpl implements SearchService {
             log.info("====== The input file name is ："+absolutefilepath);
 
             if("3".equals(type)){//测试中文
+                long start = System.currentTimeMillis();
                 Class.forName("com.bonc.usdp.sql4es.jdbc.ESDriver");
                 ESConnection esConnection = (ESConnection) DriverManager.getConnection(esjdbcurl);
 
-                long start = System.currentTimeMillis();
+                List<String> lines = FileUtil.readFileContentToList(new File(absolutefilepath),"utf-8");
 
                 List<String> filepaths = new ArrayList<>(2);
-                filepaths.add(outCsv4(esConnection,docIds,num,abs));
-                filepaths.add(outCsv4(esConnection,docIds,num,claims));
+                filepaths.add(outCsv4(esConnection,lines,num,abs));
+                filepaths.add(outCsv4(esConnection,lines,num,claims));
                 returnjson.put("filepath",filepaths);
 
                 long end = System.currentTimeMillis();
@@ -357,7 +358,7 @@ public class SearchServiceImpl implements SearchService {
      * @return
      * @throws Exception
      */
-    private String outCsv4(ESConnection esConnection,Map<String,String> docIds,Integer num,String type) throws Exception{
+    private String outCsv4(ESConnection esConnection,List<String> docIds,Integer num,String type) throws Exception{
         String uuid = UUID.randomUUID().toString().replace("-", "");
         String absoluteoutpath = csvoutdirpath + type +"_"+ uuid +".csv";
 
@@ -367,12 +368,12 @@ public class SearchServiceImpl implements SearchService {
                 new ThreadPoolExecutor.CallerRunsPolicy());
 
         CsvWriter csvWriter = new CsvWriter(absoluteoutpath);
-        Set<String> keynums = docIds.keySet();
-
-        for(String m : keynums){
-            FindSimilarDoc findSimilarDoc = new FindSimilarDoc(esConnection,m,docIds.get(m),num);
+        int m = 1;
+        for(String docid : docIds){
+            FindSimilarDoc findSimilarDoc = new FindSimilarDoc(esConnection,m+"",docid,num);
             Future<List<String[]>> result =  excutor.submit(findSimilarDoc);
             results.add(result);
+            m ++;
         }
 
         for(Future<List<String[]>> doc : results){
