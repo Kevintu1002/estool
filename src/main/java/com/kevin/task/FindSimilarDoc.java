@@ -131,7 +131,7 @@ public class FindSimilarDoc implements Callable<List<String[]>>{
             try {
                 st = esConnection.createStatement();
                 StringBuilder sql = new StringBuilder();
-                sql.append("select docid,appid,_score,abs,claims from en WHERE _search = 'title:(").append(content).append(") or abs:(")
+                sql.append("select docid,appid,_score,abs,claims,title from en WHERE _search = 'title:(").append(content).append(") or abs:(")
                         .append(content).append(") or claims:(").append(content).append(") or description:(")
                         .append(content).append(") ' limit "+num);
 
@@ -146,12 +146,15 @@ public class FindSimilarDoc implements Callable<List<String[]>>{
                     float score = rs.getFloat(3);
                     String abs2 = rs.getString(4);
                     String claims2 = rs.getString(5);
+                    String title2 = rs.getString(6);
                     String key = appId+"_"+docId;
                     if (scores.containsKey(key)){
                         float sco = (Float) scores.get(key).get("score");
                         scores.get(key).put("score",sco+score);
                     }else {
                         Map<String,Object> scoremap = new HashMap<>(4);
+                        scoremap.put(title,title2);
+                        scoremap.put(abs,abs2);
                         scoremap.put(abs,abs2);
                         scoremap.put(claims,claims2);
                         scoremap.put("score",score);

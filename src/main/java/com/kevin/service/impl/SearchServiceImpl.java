@@ -103,6 +103,7 @@ public class SearchServiceImpl implements SearchService {
                 List<String> filepaths = new ArrayList<>(2);
                 filepaths.add(outCsv4(esConnection,escnConnection,lines,num,abs));
                 filepaths.add(outCsv4(esConnection,escnConnection,lines,num,claims));
+                filepaths.add(outCsv4(esConnection,escnConnection,lines,num,title));
                 returnjson.put("filepath",filepaths);
 
                 long end = System.currentTimeMillis();
