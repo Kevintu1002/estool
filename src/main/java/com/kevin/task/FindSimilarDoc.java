@@ -8,6 +8,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Value;
 
+import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -32,6 +33,12 @@ public class FindSimilarDoc implements Callable<List<String[]>>{
     @Value("${csv.result.dir.path}")
     private String csvresultdirpath="/tmp/";
 
+    @Value("${es.jdbc.url}")
+    private String esjdbcurl = "jdbc:sql4es://202.112.195.83:9300/patent821v8?cluster.name=patent";
+
+    @Value("${es.cn.jdbc.url}")
+    private String cn_es_jdbcurl = "jdbc:sql4es://202.112.195.83:9300/patent821v13?cluster.name=patent";
+
     public  FindSimilarDoc (ESConnection esConnection, String sequence, String docid, Integer num,String outtype){
         this.sequence = sequence;
         this.esConnection = esConnection;
@@ -42,18 +49,27 @@ public class FindSimilarDoc implements Callable<List<String[]>>{
 
     @Override
     public List<String[]> call() throws Exception {
-        Map<String,String> contents = getContents2(esConnection,docid);
-        List<Map<String,String>> searchRes = getCompareDocIds2(esConnection,contents,num);
+
         List<String[]> out = new ArrayList<>();
         //写入输出csv
         int  n = 1;
         if(null != outtype){
+            Class.forName("com.bonc.usdp.sql4es.jdbc.ESDriver");
+            ESConnection es_cn_Connection = (ESConnection) DriverManager.getConnection(cn_es_jdbcurl);
+            ESConnection esConnection = (ESConnection) DriverManager.getConnection(cn_es_jdbcurl);
+
+            Map<String,String> contents = getContents2(es_cn_Connection,docid);
+            List<Map<String,String>> searchRes = getCompareDocIds2(esConnection,contents,num);
+
             for(Map<String,String> resdocid : searchRes){
                 String[] docids = {sequence,docid,contents.get(outtype),n+"",resdocid.get(finaldocid),resdocid.get(outtype)};
                 out.add(docids);
                 n ++;
             }
         }else{
+            Map<String,String> contents = getContents2(esConnection,docid);
+            List<Map<String,String>> searchRes = getCompareDocIds2(esConnection,contents,num);
+
             for(Map<String,String> resdocid : searchRes){
                 String[] docids = {sequence,docid,n+"",resdocid.get(finaldocid)};
                 out.add(docids);

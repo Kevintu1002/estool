@@ -92,14 +92,12 @@ public class SearchServiceImpl implements SearchService {
 
             if("3".equals(type)){//测试中文
                 long start = System.currentTimeMillis();
-                Class.forName("com.bonc.usdp.sql4es.jdbc.ESDriver");
-                ESConnection esConnection = (ESConnection) DriverManager.getConnection(esjdbcurl);
 
                 List<String> lines = FileUtil.readFileContentToListByLine(absolutefilepath,"utf-8");
 
                 List<String> filepaths = new ArrayList<>(2);
-                filepaths.add(outCsv4(esConnection,lines,num,abs));
-                filepaths.add(outCsv4(esConnection,lines,num,claims));
+                filepaths.add(outCsv4(lines,num,abs));
+                filepaths.add(outCsv4(lines,num,claims));
                 returnjson.put("filepath",filepaths);
 
                 long end = System.currentTimeMillis();
@@ -350,14 +348,13 @@ public class SearchServiceImpl implements SearchService {
 
     /**
      * type = 3 多线程处理 生成中间两个csv文件
-     * @param esConnection
      * @param docIds
      * @param num
      * @param type
      * @return
      * @throws Exception
      */
-    private String outCsv4(ESConnection esConnection,List<String> docIds,Integer num,String type) throws Exception{
+    private String outCsv4(List<String> docIds,Integer num,String type) throws Exception{
         String uuid = UUID.randomUUID().toString().replace("-", "");
         String absoluteoutpath = csvoutdirpath + type +"_"+ uuid +".csv";
 
@@ -369,7 +366,7 @@ public class SearchServiceImpl implements SearchService {
         CsvWriter csvWriter = new CsvWriter(absoluteoutpath);
         int m = 1;
         for(String docid : docIds){
-            FindSimilarDoc findSimilarDoc = new FindSimilarDoc(esConnection,m+"",docid,num,type);
+            FindSimilarDoc findSimilarDoc = new FindSimilarDoc(null,m+"",docid,num,type);
             Future<List<String[]>> result =  excutor.submit(findSimilarDoc);
             results.add(result);
             m ++;
