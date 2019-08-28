@@ -146,7 +146,7 @@ public class FindSimilarDoc2 implements Callable<Map>{
         List<Map<String,String>> docIds = new ArrayList<>();
         Map<String,Map<String,Object>> scores = new HashMap<>();
         List<String> contents2 = new ArrayList<>();
-        contents2.add(contentdetail.get(title));
+//        contents2.add(contentdetail.get(title));
         contents2.add(contentdetail.get(abs));
         contents2.add(contentdetail.get(claims));
 
@@ -157,13 +157,13 @@ public class FindSimilarDoc2 implements Callable<Map>{
                 st = esConnection.createStatement();
                 StringBuilder sql = new StringBuilder();
                 if(StringUtil.empty(contentdetail.get(pdate))){
-                    sql.append("select docid,appid,_score,abs,claims,title from en WHERE _search = 'title:(").append(content).append(") or abs:(")
+                    sql.append("select docid,appid,_score,abs,claims,title from en WHERE _search = ' abs:(")
                             .append(content).append(") or claims:(").append(content).append(") or description:(")
                             .append(content).append(") 'limit "+num);
                 }else{
-                    sql.append("select docid,appid,_score,abs,claims,title from en WHERE _search = 'title:(").append(content).append(") or abs:(")
+                    sql.append("select docid,appid,_score,abs,claims,title from en WHERE _search = ' abs:(")
                             .append(content).append(") or claims:(").append(content).append(") or description:(")
-                            .append(content).append(") ' and pdate <= ")
+                            .append(content).append(") ' and pdate < ")
                             .append(contentdetail.get(pdate)).append(" limit "+num);
                 }
 

@@ -8,6 +8,7 @@ import com.kevin.task.FindSimilarDoc;
 import com.kevin.task.FindSimilarDoc2;
 import com.kevin.utils.CSVUtil;
 import com.kevin.utils.FileUtil;
+import com.kevin.utils.LinuxSCP2Util;
 import com.kevin.utils.StringUtil;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -52,6 +53,17 @@ public class SearchServiceImpl implements SearchService {
 
     @Value("${threadpool.size}")
     private String threadpoolsize = "10";
+
+
+    public static final String IP = "222.28.84.124";
+
+    public static final int PORT = 22;
+
+    public static final String USERNAME = "ky";
+
+    public static final String PASSWORD = "12345";
+
+    public static final String REMOTEURL = "/home/ky/suda_test/data/test";
 
 
     @Override
@@ -104,6 +116,17 @@ public class SearchServiceImpl implements SearchService {
                 returnjson.put("filepath",outCsv4(esConnection,escnConnection,lines,num,abs));
 
                 long end = System.currentTimeMillis();
+
+                //执行linux脚本
+                LinuxSCP2Util scp = LinuxSCP2Util.getInstance(IP, PORT,
+                        USERNAME,PASSWORD);
+                scp.putFile(csvoutdirpath, "*", REMOTEURL, null);
+
+                String command = "cd /home/ky/suda_test/ "+"\n"
+                        +"source ./venv/bin/activate"+"\n"
+                        + "python zhuanli_matching_attention_three_csv.py\n";
+
+
                 System.out.println("耗时：" + (end - start) / 1000 + " s");
                 return returnjson.toJSONString();
 
