@@ -158,7 +158,7 @@ public class FileUtil {
      * @param filePath
      * @param content
      */
-    public static void writeContentAppend(String filePath, String content) {
+    public static synchronized void writeContentAppend(String filePath, String content) {
         try {
             //构造函数中的第二个参数true表示以追加形式写文件
             FileWriter fw = new FileWriter(filePath,true);

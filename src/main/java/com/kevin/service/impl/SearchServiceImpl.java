@@ -3,7 +3,6 @@ package com.kevin.service.impl;
 import com.alibaba.fastjson.JSONObject;
 import com.bonc.usdp.sql4es.jdbc.ESConnection;
 import com.csvreader.CsvWriter;
-import com.kevin.data.DataQueue;
 import com.kevin.service.SearchService;
 import com.kevin.task.FindSimilarDoc;
 import com.kevin.task.FindSimilarDoc2;
@@ -53,7 +52,7 @@ public class SearchServiceImpl implements SearchService {
     private String resultdirpath = "/data/disk1/patent/Django/media/csvout/";
 
     @Value("${datefilter.path}")
-    private String datefilterpath = "G:\\software\\es\\cn_us_citation_publicdate_producedate";
+    private String datefilterpath = "/data/disk1/patent/Django/media/cn_us_citation_publicdate_producedate";
 
     @Value("${threadpool.size}")
     private String threadpoolsize = "10";
@@ -157,9 +156,9 @@ public class SearchServiceImpl implements SearchService {
             if("1".equals(type)){
                 long start = System.currentTimeMillis();
 
-//                String filepath = outCsv_back(esConnection,docIds,num);//单线程处理
+                String filepath = outCsv1_back(esConnection,docIds,num);//单线程处理
 
-                String filepath = outCsv1(esConnection,docIds,num);
+//                String filepath = outCsv1(esConnection,docIds,num);
                 returnjson.put("filepath",filepath);
 
                 long end = System.currentTimeMillis();
@@ -253,7 +252,7 @@ public class SearchServiceImpl implements SearchService {
             Future<List> result =  excutor.submit(findSimilarDoc);
             results.add(result);
         }
-
+        excutor.shutdown();
         for(Future<List> doc : results){
             List<String[]> docrows = doc.get();
             docrows.forEach(docrow -> {
@@ -402,6 +401,8 @@ public class SearchServiceImpl implements SearchService {
             m ++;
         }
 
+        excutor.shutdown();
+
         StringBuilder titlebuilder = new StringBuilder("");
         StringBuilder claimbuilder = new StringBuilder("");
         StringBuilder absbuilder = new StringBuilder("");
@@ -411,12 +412,9 @@ public class SearchServiceImpl implements SearchService {
         String abspath = csvoutdirpath + abs +".tsv";
 
         if(results.size() > 10){
-            //考题数
-            int n = results.size() % 10 == 0 ? results.size() / 10 :  results.size() / 10 + 1;
 
-            //前10个数写入文件
-            for(int j = 0 ; j < 10; j ++){
-                map =  results.get(j).get();
+            for(Future<Map> result : results){
+                map =  result.get();
                 List<String> titlesss = map.get(title);
                 for(String content : titlesss){
                     titlebuilder.append(content);
@@ -431,47 +429,13 @@ public class SearchServiceImpl implements SearchService {
                 for(String content : claimssss){
                     claimbuilder.append(content);
                 }
-            }
-
-            FileUtil.writeContent(titlepath,titlebuilder.toString());
-            FileUtil.writeContent(claimpath,claimbuilder.toString());
-            FileUtil.writeContent(abspath,absbuilder.toString());
-
-            titlebuilder = new StringBuilder("");
-            claimbuilder = new StringBuilder("");
-            absbuilder = new StringBuilder("");
-
-            for(int i = 1;i < n ; i ++){//每10个一组进行一轮遍历
-                for(int j = i * 10; j < (i+1) * 10; j ++){
-                    if(j >= n){
-                        break;
-                    }
-                    map =  results.get(j).get();
-                    List<String> titlesss = map.get(title);
-                    for(String content : titlesss){
-                        titlebuilder.append(content);
-                    }
-
-                    List<String> abssss = map.get(abs);
-                    for(String content : abssss){
-                        absbuilder.append(content);
-                    }
-
-                    List<String> claimssss = map.get(claims);
-                    for(String content : claimssss){
-                        claimbuilder.append(content);
-                    }
-                }
-
                 FileUtil.writeContentAppend(titlepath,titlebuilder.toString());
                 FileUtil.writeContentAppend(claimpath,claimbuilder.toString());
                 FileUtil.writeContentAppend(abspath,absbuilder.toString());
 
-                //追加文件内容
                 titlebuilder = new StringBuilder("");
                 claimbuilder = new StringBuilder("");
                 absbuilder = new StringBuilder("");
-
             }
         }else{//小于10
             for(Future<Map> doc : results){
@@ -578,17 +542,15 @@ public class SearchServiceImpl implements SearchService {
         for (int i=0;i<length;i++){
             String key = list.get(i).getKey();
             Map<String,Object> key_value = list.get(i).getValue();
-            String[] ids = key.split("_");
 
-            for (int j=0;j<ids.length;j++){
-                String id = ids[j];
-                if (!StringUtil.empty(id)){
-                    Map<String,String> detail = new HashMap<>(3);
-                    detail.put(finaldocid,id);
-                    detail.put(claims,key_value.get(claims)+"");
-                    detail.put(abs,key_value.get(abs)+"");
-                    docIds.add(detail);
-                }
+            String id = key.split("_")[1];
+            if (!StringUtil.empty(id)){
+                Map<String,String> detail = new HashMap<>(3);
+                detail.put(finaldocid,id);
+                detail.put(claims,key_value.get(claims)+"");
+                detail.put(abs,key_value.get(abs)+"");
+                detail.put(title,key_value.get(title)+"");
+                docIds.add(detail);
             }
         }
         return docIds;
