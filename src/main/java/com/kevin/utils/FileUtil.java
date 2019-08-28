@@ -2,10 +2,7 @@ package com.kevin.utils;
 
 import java.io.*;
 import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 public class FileUtil {
 
@@ -92,6 +89,29 @@ public class FileUtil {
             ex.printStackTrace();
         }
         return contents;
+    }
+
+    public static Map<String,List<String>> readDateFilter(String dateFilterPath){
+        Map<String,List<String>> result = new HashMap<>();
+        if (StringUtil.empty(dateFilterPath)){
+            return result;
+        }
+        List<String> contents = FileUtil.readFileContentToListByLine(dateFilterPath,"UTF-8");
+        for (String content :contents){
+
+            if (StringUtil.empty(content)){
+                continue;
+            }
+            String[] items = content.split("\t");
+            List<String> temp = new ArrayList<>();
+            temp.add(items[1]);
+            temp.add(items[2]);
+            result.put(items[0],temp);
+
+        }
+
+
+        return result;
     }
 
     public static void writeContent(String outfilepath,String content){

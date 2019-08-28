@@ -3,6 +3,7 @@ package com.kevin.service.impl;
 import com.alibaba.fastjson.JSONObject;
 import com.bonc.usdp.sql4es.jdbc.ESConnection;
 import com.csvreader.CsvWriter;
+import com.kevin.data.DataQueue;
 import com.kevin.service.SearchService;
 import com.kevin.task.FindSimilarDoc;
 import com.kevin.task.FindSimilarDoc2;
@@ -50,6 +51,9 @@ public class SearchServiceImpl implements SearchService {
 
     @Value("${result.dir.path}")
     private String resultdirpath = "/data/disk1/patent/Django/media/csvout/";
+
+    @Value("${datefilter.path}")
+    private String datefilterpath = "G:\\software\\es\\cn_us_citation_publicdate_producedate";
 
     @Value("${threadpool.size}")
     private String threadpoolsize = "10";
@@ -107,7 +111,6 @@ public class SearchServiceImpl implements SearchService {
 
             if("3".equals(type)){//测试中文
                 long start = System.currentTimeMillis();
-
                 Class.forName("com.bonc.usdp.sql4es.jdbc.ESDriver");
                 ESConnection esConnection = (ESConnection) DriverManager.getConnection(esjdbcurl);
                 ESConnection escnConnection = (ESConnection) DriverManager.getConnection(cn_es_jdbcurl);
@@ -390,8 +393,10 @@ public class SearchServiceImpl implements SearchService {
                 new ThreadPoolExecutor.CallerRunsPolicy());
 
         int m = 1;
+        Map<String,List<String>> datefilter = FileUtil.readDateFilter(datefilterpath);
         for(String docid : docIds){
-            FindSimilarDoc2 findSimilarDoc2 = new FindSimilarDoc2(esConnection,escnConnection,m+"",docid,num);
+           String pdate =  datefilter.get(docid).get(0);
+            FindSimilarDoc2 findSimilarDoc2 = new FindSimilarDoc2(esConnection,escnConnection,m+"",docid,num,pdate);
             Future<Map> result =  excutor.submit(findSimilarDoc2);
             results.add(result);
             m ++;

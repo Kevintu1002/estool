@@ -22,6 +22,7 @@ public class FindSimilarDoc2 implements Callable<Map>{
     private String sequence;
     private String docid;
     private Integer num;
+    private String date;
 
     private static final String finaldocid = "docid";
     private static final String title = "title";
@@ -43,12 +44,13 @@ public class FindSimilarDoc2 implements Callable<Map>{
         this.docid = docid;
         this.num = num;
     }
-    public FindSimilarDoc2(ESConnection esConnection, ESConnection es_cn_Connection, String sequence, String docid, Integer num){
+    public FindSimilarDoc2(ESConnection esConnection, ESConnection es_cn_Connection, String sequence, String docid, Integer num,String date){
         this.sequence = sequence;
         this.esConnection = esConnection;
         this.es_cn_Connection = es_cn_Connection;
         this.docid = docid;
         this.num = num;
+        this.date = date;
     }
 
     @Override
@@ -156,7 +158,8 @@ public class FindSimilarDoc2 implements Callable<Map>{
             try {
                 st = esConnection.createStatement();
                 StringBuilder sql = new StringBuilder();
-                if(StringUtil.empty(contentdetail.get(pdate))){
+
+                if(StringUtil.empty(date)){
                     sql.append("select docid,appid,_score,abs,claims,title from en WHERE _search = ' abs:(")
                             .append(content).append(") or claims:(").append(content).append(") or description:(")
                             .append(content).append(") 'limit "+num);
@@ -164,7 +167,7 @@ public class FindSimilarDoc2 implements Callable<Map>{
                     sql.append("select docid,appid,_score,abs,claims,title from en WHERE _search = ' abs:(")
                             .append(content).append(") or claims:(").append(content).append(") or description:(")
                             .append(content).append(") ' and pdate < ")
-                            .append(contentdetail.get(pdate)).append(" limit "+num);
+                            .append(date).append(" limit "+num);
                 }
 
                 ResultSet rs = st.executeQuery(sql.toString());
