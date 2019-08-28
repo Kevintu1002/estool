@@ -8,7 +8,6 @@ import com.kevin.task.FindSimilarDoc;
 import com.kevin.task.FindSimilarDoc2;
 import com.kevin.utils.CSVUtil;
 import com.kevin.utils.FileUtil;
-import com.kevin.utils.LinuxSCP2Util;
 import com.kevin.utils.StringUtil;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -120,13 +119,15 @@ public class SearchServiceImpl implements SearchService {
                 long end = System.currentTimeMillis();
 
                 //执行linux脚本
-                LinuxSCP2Util scp = LinuxSCP2Util.getInstance(IP, PORT,
-                        USERNAME,PASSWORD);
-                scp.putFile(csvoutdirpath, "*", REMOTEURL, null);
-
-                String command = "cd /home/ky/suda_test/ "+"\n"
-                        +"source ./venv/bin/activate"+"\n"
-                        + "python zhuanli_matching_attention_three_csv.py\n";
+//                LinuxSCP2Util scp = LinuxSCP2Util.getInstance(IP, PORT,
+//                        USERNAME,PASSWORD);
+//                scp.putFile(csvoutdirpath, title +".tsv", REMOTEURL, null);
+//                scp.putFile(csvoutdirpath, claims +".tsv", REMOTEURL, null);
+//                scp.putFile(csvoutdirpath, abs +".tsv", REMOTEURL, null);
+//
+//                String command = "cd /home/ky/suda_test/ "+"\n"
+//                        +"source ./venv/bin/activate"+"\n"
+//                        + "python zhuanli_matching_attention_three_csv.py\n";
 
 
                 System.out.println("耗时：" + (end - start) / 1000 + " s");
@@ -156,9 +157,9 @@ public class SearchServiceImpl implements SearchService {
             if("1".equals(type)){
                 long start = System.currentTimeMillis();
 
-                String filepath = outCsv1_back(esConnection,docIds,num);//单线程处理
+//                String filepath = outCsv1_back(esConnection,docIds,num);//单线程处理
 
-//                String filepath = outCsv1(esConnection,docIds,num);
+                String filepath = outCsv1(esConnection,docIds,num);
                 returnjson.put("filepath",filepath);
 
                 long end = System.currentTimeMillis();
@@ -252,7 +253,9 @@ public class SearchServiceImpl implements SearchService {
             Future<List> result =  excutor.submit(findSimilarDoc);
             results.add(result);
         }
+
         excutor.shutdown();
+
         for(Future<List> doc : results){
             List<String[]> docrows = doc.get();
             docrows.forEach(docrow -> {
@@ -404,73 +407,82 @@ public class SearchServiceImpl implements SearchService {
 
         excutor.shutdown();
 
-        StringBuilder titlebuilder = new StringBuilder("");
-        StringBuilder claimbuilder = new StringBuilder("");
-        StringBuilder absbuilder = new StringBuilder("");
-        Map<String,List<String>> map = null;
+        for(Future<Map> futuremap : results){
+
+        }
+
         String titlepath = csvoutdirpath + title +".tsv";
         String claimpath = csvoutdirpath + claims +".tsv";
         String abspath = csvoutdirpath + abs +".tsv";
+//
 
-        if(results.size() > 10){
-            for(Future<Map> result : results){
-                map =  result.get();
-                List<String> titlesss = map.get(title);
-                for(String content : titlesss){
-                    titlebuilder.append(content);
-                }
-
-                List<String> abssss = map.get(abs);
-                for(String content : abssss){
-                    absbuilder.append(content);
-                }
-
-                List<String> claimssss = map.get(claims);
-                for(String content : claimssss){
-                    if(content.length() > 5000){
-                        content = content.substring(0,5000);
-                    }
-                    claimbuilder.append(content);
-                }
-
-                FileUtil.writeContentAppend(titlepath,titlebuilder.toString());
-                FileUtil.writeContentAppend(claimpath,claimbuilder.toString());
-                FileUtil.writeContentAppend(abspath,absbuilder.toString());
-
-                titlebuilder = new StringBuilder("");
-                claimbuilder = new StringBuilder("");
-                absbuilder = new StringBuilder("");
-            }
-
-        }else{//小于10
-            for(Future<Map> doc : results){
-                map = doc.get();
-                List<String> titlesss = map.get(title);
-                for(String content : titlesss){
-                    titlebuilder.append(content);
-                }
-
-                List<String> abssss = map.get(abs);
-                for(String content : abssss){
-                    absbuilder.append(content);
-                }
-
-                List<String> claimssss = map.get(claims);
-                for(String content : claimssss){
-                    //截取claim
-                    if(content.length() > 5000){
-                        content = content.substring(0,5000);
-                    }
-                    claimbuilder.append(content);
-                }
-                map = null;
-            }
-            FileUtil.writeContent(titlepath,titlebuilder.toString());
-            FileUtil.writeContent(claimpath,claimbuilder.toString());
-            FileUtil.writeContent(abspath,absbuilder.toString());
-        }
-
-
+//        StringBuilder titlebuilder = new StringBuilder("");
+//        StringBuilder claimbuilder = new StringBuilder("");
+//        StringBuilder absbuilder = new StringBuilder("");
+//        Map<String,List<String>> map = null;
+//        String titlepath = csvoutdirpath + title +".tsv";
+//        String claimpath = csvoutdirpath + claims +".tsv";
+//        String abspath = csvoutdirpath + abs +".tsv";
+//
+//        if(results.size() > 10){
+//            for(Future<Map> result : results){
+//                map =  result.get();
+//                List<String> titlesss = map.get(title);
+//                for(String content : titlesss){
+//                    titlebuilder.append(content);
+//                }
+//
+//                List<String> abssss = map.get(abs);
+//                for(String content : abssss){
+//                    absbuilder.append(content);
+//                }
+//
+//                List<String> claimssss = map.get(claims);
+//                for(String content : claimssss){
+//                    if(content.length() > 5000){
+//                        content = content.substring(0,5000);
+//                    }
+//                    claimbuilder.append(content);
+//                }
+//
+//                FileUtil.writeContentAppend(titlepath,titlebuilder.toString());
+//                FileUtil.writeContentAppend(claimpath,claimbuilder.toString());
+//                FileUtil.writeContentAppend(abspath,absbuilder.toString());
+//
+//                titlebuilder = new StringBuilder("");
+//                claimbuilder = new StringBuilder("");
+//                absbuilder = new StringBuilder("");
+//            }
+//
+//        }else{//小于10
+//            for(Future<Map> doc : results){
+//                map = doc.get();
+//                List<String> titlesss = map.get(title);
+//                for(String content : titlesss){
+//                    titlebuilder.append(content);
+//                }
+//
+//                List<String> abssss = map.get(abs);
+//                for(String content : abssss){
+//                    absbuilder.append(content);
+//                }
+//
+//                List<String> claimssss = map.get(claims);
+//                for(String content : claimssss){
+//                    //截取claim
+//                    if(content.length() > 5000){
+//                        content = content.substring(0,5000);
+//                    }
+//                    claimbuilder.append(content);
+//                }
+//                map = null;
+//            }
+//            FileUtil.writeContent(titlepath,titlebuilder.toString());
+//            FileUtil.writeContent(claimpath,claimbuilder.toString());
+//            FileUtil.writeContent(abspath,absbuilder.toString());
+//        }
+//
+//
 
         List<String> paths = new ArrayList<>(3);
         paths.add(titlepath);

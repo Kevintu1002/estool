@@ -1,6 +1,7 @@
 package com.kevin.task;
 
 import com.bonc.usdp.sql4es.jdbc.ESConnection;
+import com.kevin.utils.FileUtil;
 import com.kevin.utils.StringUtil;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -36,7 +37,8 @@ public class FindSimilarDoc2 implements Callable<Map>{
     private String esjdbcurl = "jdbc:sql4es://202.112.195.83:9300/patent821v9?cluster.name=patent";
     @Value("${es.cn.jdbc.url}")
     private String cn_es_jdbcurl = "jdbc:sql4es://202.112.195.83:9300/patent821v13?cluster.name=patent";
-
+    @Value("${csv.out.dir.path}")
+    private String csvoutdirpath = "/data/disk1/patent/Django/media/csvout/";
 
     public FindSimilarDoc2(ESConnection esConnection, String sequence, String docid, Integer num, String outtype){
         this.sequence = sequence;
@@ -99,15 +101,25 @@ public class FindSimilarDoc2 implements Callable<Map>{
             absbuilder.append(resdocid.get(abs) + "\n");
             n ++;
         }
-        titles.add(titlebuilder.toString());
-        abss.add(absbuilder.toString());
-        claimss.add(claimbuilder.toString());
 
-        Map out2 = new HashMap(3);
-        out2.put(title,titles);
-        out2.put(abs,abss);
-        out2.put(claims,claimss);
-        return out2;
+        String titlepath = csvoutdirpath + title +".tsv";
+        String claimpath = csvoutdirpath + claims +".tsv";
+        String abspath = csvoutdirpath + abs +".tsv";
+
+        FileUtil.writeContentAppend(titlepath,titlebuilder.toString());
+        FileUtil.writeContentAppend(claimpath,claimbuilder.toString());
+        FileUtil.writeContentAppend(abspath,absbuilder.toString());
+
+//        titles.add(titlebuilder.toString());
+//        abss.add(absbuilder.toString());
+//        claimss.add(claimbuilder.toString());
+//
+//        Map out2 = new HashMap(3);
+//        out2.put(title,titles);
+//        out2.put(abs,abss);
+//        out2.put(claims,claimss);
+//        return out2;
+        return null;
 
     }
 
