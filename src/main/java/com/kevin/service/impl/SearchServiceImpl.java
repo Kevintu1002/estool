@@ -386,6 +386,7 @@ public class SearchServiceImpl implements SearchService {
         String uuid = UUID.randomUUID().toString().replace("-", "");
 //        String absoluteoutpath = csvoutdirpath + type +"_"+ uuid +".tsv";
 
+//        int buffersize = 0;
         List<Future<Map>> results = new LinkedList<Future<Map>>();
         ThreadPoolExecutor excutor = new ThreadPoolExecutor(Integer.parseInt(threadpoolsize), Integer.parseInt(threadpoolsize), 0,
                 TimeUnit.SECONDS, new LinkedBlockingDeque<Runnable>(),
@@ -412,7 +413,6 @@ public class SearchServiceImpl implements SearchService {
         String abspath = csvoutdirpath + abs +".tsv";
 
         if(results.size() > 10){
-
             for(Future<Map> result : results){
                 map =  result.get();
                 List<String> titlesss = map.get(title);
@@ -427,8 +427,12 @@ public class SearchServiceImpl implements SearchService {
 
                 List<String> claimssss = map.get(claims);
                 for(String content : claimssss){
+                    if(content.length() > 5000){
+                        content = content.substring(0,5000);
+                    }
                     claimbuilder.append(content);
                 }
+
                 FileUtil.writeContentAppend(titlepath,titlebuilder.toString());
                 FileUtil.writeContentAppend(claimpath,claimbuilder.toString());
                 FileUtil.writeContentAppend(abspath,absbuilder.toString());
@@ -437,6 +441,7 @@ public class SearchServiceImpl implements SearchService {
                 claimbuilder = new StringBuilder("");
                 absbuilder = new StringBuilder("");
             }
+
         }else{//小于10
             for(Future<Map> doc : results){
                 map = doc.get();
