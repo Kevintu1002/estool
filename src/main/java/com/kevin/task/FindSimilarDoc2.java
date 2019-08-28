@@ -38,7 +38,7 @@ public class FindSimilarDoc2 implements Callable<Map>{
     @Value("${es.cn.jdbc.url}")
     private String cn_es_jdbcurl = "jdbc:sql4es://202.112.195.83:9300/patent821v13?cluster.name=patent";
     @Value("${csv.out.dir.path}")
-    private String csvoutdirpath = "/data/disk1/patent/Django/media/csvout/";
+    private String csvoutdirpath = "/Users/guyuefei/testout/";
 
     public FindSimilarDoc2(ESConnection esConnection, String sequence, String docid, Integer num, String outtype){
         this.sequence = sequence;
@@ -134,8 +134,8 @@ public class FindSimilarDoc2 implements Callable<Map>{
             ResultSet res = st.executeQuery(sql.toString());
             while (res.next()){
                 detail.put(title, res.getString(1));
-                detail.put(abs,res.getString(2));
-                detail.put(claims,res.getString(3));
+                detail.put(abs,StringUtil.remove2(res.getString(2)));
+                detail.put(claims,StringUtil.remove2(res.getString(3)));
                 detail.put(pdate,res.getString(4));
 //                contents.add(res.getString(3));
             }
@@ -171,16 +171,27 @@ public class FindSimilarDoc2 implements Callable<Map>{
                 st = esConnection.createStatement();
                 StringBuilder sql = new StringBuilder();
 
+//                if(StringUtil.empty(date)){
+//                    sql.append("select docid,appid,_score,abs,claims,title from en WHERE _search = ' abs:(")
+//                            .append(content).append(") or claims:(").append(content).append(") or description:(")
+//                            .append(content).append(") 'limit "+num);
+//                }else{
+//                    sql.append("select docid,appid,_score,abs,claims,title from en WHERE _search = ' abs:(")
+//                            .append(content).append(") or claims:(").append(content).append(") or description:(")
+//                            .append(content).append(") ' and pdate < ")
+//                            .append(date).append(" limit "+num);
+//                }
+
                 if(StringUtil.empty(date)){
-                    sql.append("select docid,appid,_score,abs,claims,title from en WHERE _search = ' abs:(")
-                            .append(content).append(") or claims:(").append(content).append(") or description:(")
-                            .append(content).append(") 'limit "+num);
+                    sql.append("select docid,appid,_score,abs,claims,title from en WHERE _search = 'abs:(")
+                            .append(content).append(") or claims:(").append(content).append(") 'limit "+num);
                 }else{
                     sql.append("select docid,appid,_score,abs,claims,title from en WHERE _search = ' abs:(")
-                            .append(content).append(") or claims:(").append(content).append(") or description:(")
-                            .append(content).append(") ' and pdate < ")
-                            .append(date).append(" limit "+num);
+                            .append(content).append(") or claims:(").append(content).append(") ' and pdate < '")
+                            .append(date).append("' limit "+num);
                 }
+
+                System.out.println("===================================== search sql :" + sql.toString());
 
                 ResultSet rs = st.executeQuery(sql.toString());
                 while (rs.next()){

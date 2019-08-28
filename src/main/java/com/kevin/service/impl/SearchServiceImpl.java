@@ -124,11 +124,12 @@ public class SearchServiceImpl implements SearchService {
 //                scp.putFile(csvoutdirpath, title +".tsv", REMOTEURL, null);
 //                scp.putFile(csvoutdirpath, claims +".tsv", REMOTEURL, null);
 //                scp.putFile(csvoutdirpath, abs +".tsv", REMOTEURL, null);
-//
+
 //                String command = "cd /home/ky/suda_test/ "+"\n"
 //                        +"source ./venv/bin/activate"+"\n"
-//                        + "python zhuanli_matching_attention_three_csv.py\n";
-
+//                        + "python zhuanli_matching_attention_three_csv.py \n";
+//
+//                boolean flag = ShellUtils.executeRemoteShell(IP,USERNAME,PASSWORD,command);
 
                 System.out.println("耗时：" + (end - start) / 1000 + " s");
                 return returnjson.toJSONString();
@@ -407,14 +408,15 @@ public class SearchServiceImpl implements SearchService {
 
         excutor.shutdown();
 
-        for(Future<Map> futuremap : results){
-
+        while (true){
+            if(excutor.getActiveCount() == 0){
+                break;
+            }
         }
 
         String titlepath = csvoutdirpath + title +".tsv";
         String claimpath = csvoutdirpath + claims +".tsv";
         String abspath = csvoutdirpath + abs +".tsv";
-//
 
 //        StringBuilder titlebuilder = new StringBuilder("");
 //        StringBuilder claimbuilder = new StringBuilder("");
@@ -506,9 +508,12 @@ public class SearchServiceImpl implements SearchService {
             try {
                 st = esConnection.createStatement();
                 StringBuilder sql = new StringBuilder();
-                sql.append("select docid,appid,_score,abs,claims from en WHERE _search = 'title:(").append(content).append(") or abs:(")
-                        .append(content).append(") or claims:(").append(content).append(") or description:(")
-                        .append(content).append(") ' limit "+num);
+//                sql.append("select docid,appid,_score,abs,claims from en WHERE _search = 'title:(").append(content).append(") or abs:(")
+//                        .append(content).append(") or claims:(").append(content).append(") or description:(")
+//                        .append(content).append(") ' limit "+num);
+
+                sql.append("select docid,appid,_score,abs,claims from en WHERE _search = 'abs:(")
+                        .append(content).append(") or claims:(").append(content).append(") ' limit "+num);
 
                 ResultSet rs = st.executeQuery(sql.toString());
                 while (rs.next()){
@@ -583,9 +588,12 @@ public class SearchServiceImpl implements SearchService {
             try {
                 st = esConnection.createStatement();
                 StringBuilder sql = new StringBuilder();
-                sql.append("select docid,appid,_score from en WHERE _search = 'title:(").append(content).append(") or abs:(")
-                        .append(content).append(") or claims:(").append(content).append(") or description:(")
-                        .append(content).append(") ' limit "+num);
+//                sql.append("select docid,appid,_score from en WHERE _search = 'title:(").append(content).append(") or abs:(")
+//                        .append(content).append(") or claims:(").append(content).append(") or description:(")
+//                        .append(content).append(") ' limit "+num);
+
+                sql.append("select docid,appid,_score from en WHERE _search = ' abs:(")
+                        .append(content).append(") or claims:(").append(content).append(") ' limit "+num);
 
                 ResultSet rs = st.executeQuery(sql.toString());
                 while (rs.next()){

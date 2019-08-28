@@ -116,17 +116,27 @@ public class FindSimilarDoc implements Callable<List>{
             try {
                 st = esConnection.createStatement();
                 StringBuilder sql = new StringBuilder();
+//                if(StringUtil.empty(contentdetail.get(pdate))){
+//                    sql.append("select docid,appid,_score,abs,claims,title from en WHERE _search = 'title:(").append(content).append(") or abs:(")
+//                            .append(content).append(") or claims:(").append(content).append(") or description:(")
+//                            .append(content).append(") 'limit "+num);
+//                }else{
+//                    sql.append("select docid,appid,_score,abs,claims,title from en WHERE _search = 'title:(").append(content).append(") or abs:(")
+//                            .append(content).append(") or claims:(").append(content).append(") or description:(")
+//                            .append(content).append(") ' and pdate <= ")
+//                            .append(contentdetail.get(pdate)).append(" limit "+num);
+//                }
+
                 if(StringUtil.empty(contentdetail.get(pdate))){
-                    sql.append("select docid,appid,_score,abs,claims,title from en WHERE _search = 'title:(").append(content).append(") or abs:(")
-                            .append(content).append(") or claims:(").append(content).append(") or description:(")
-                            .append(content).append(") 'limit "+num);
+                    sql.append("select docid,appid,_score,abs,claims,title from en WHERE _search = 'abs:(")
+                            .append(content).append(") or claims:(").append(content).append(") 'limit "+num);
                 }else{
-                    sql.append("select docid,appid,_score,abs,claims,title from en WHERE _search = 'title:(").append(content).append(") or abs:(")
-                            .append(content).append(") or claims:(").append(content).append(") or description:(")
-                            .append(content).append(") ' and pdate <= ")
-                            .append(contentdetail.get(pdate)).append(" limit "+num);
+                    sql.append("select docid,appid,_score,abs,claims,title from en WHERE _search = ' abs:(")
+                            .append(content).append(") or claims:(").append(content).append(") ' and pdate < '")
+                            .append(contentdetail.get(pdate)).append("' limit "+num);
                 }
 
+                System.out.println("===================================== search sql :" + sql.toString());
                 ResultSet rs = st.executeQuery(sql.toString());
                 while (rs.next()){
 
