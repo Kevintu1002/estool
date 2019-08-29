@@ -206,6 +206,7 @@ public class FindSimilarDoc2 implements Callable<Map>{
                     String claims2 = rs.getString(5);
                     String title2 = rs.getString(6);
                     String key = appId+"_"+docId;
+//                    System.out.println(key + "  : " +score);
                     if (scores.containsKey(key)){
                         float sco = (Float) scores.get(key).get("score");
                         scores.get(key).put("score",sco+score);
@@ -237,7 +238,9 @@ public class FindSimilarDoc2 implements Callable<Map>{
             @Override
             public int compare(Map.Entry<String, Map<String,Object>> o1,
                                Map.Entry<String, Map<String,Object>> o2) {
-                return ((Float)o2.getValue().get("score")).compareTo( (Float)o2.getValue().get("score"));
+//                System.out.println("compare: " + o1.getKey() + "  : " +((Float)o1.getValue().get("score")).floatValue());
+//                System.out.println("compare: " + o2.getKey() + "  : " +((Float)o2.getValue().get("score")).floatValue());
+                return  ((Float)o2.getValue().get("score")).compareTo ( (Float)o2.getValue().get("score")) ;
             }
         });
         int length = list.size() > num?num:list.size();
@@ -246,6 +249,8 @@ public class FindSimilarDoc2 implements Callable<Map>{
             Map<String,Object> key_value = list.get(i).getValue();
 
             String id = key.split("_")[1];
+
+            System.out.println(key + "====" + key_value.get("score"));
             if (!StringUtil.empty(id)){
                 Map<String,String> detail = new HashMap<>(3);
                 detail.put(finaldocid,id);
