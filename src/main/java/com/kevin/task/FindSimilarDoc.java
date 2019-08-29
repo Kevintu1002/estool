@@ -82,8 +82,8 @@ public class FindSimilarDoc implements Callable<List>{
             ResultSet res = st.executeQuery(sql.toString());
             while (res.next()){
                 detail.put(title, res.getString(1));
-                detail.put(abs,res.getString(2));
-                detail.put(claims,res.getString(3));
+                detail.put(abs,StringUtil.remove2(res.getString(2)));
+                detail.put(claims,StringUtil.remove2(res.getString(3)));
                 detail.put(pdate,res.getString(4));
             }
         } catch (Exception e) {
@@ -104,9 +104,10 @@ public class FindSimilarDoc implements Callable<List>{
 
     private List<Map<String,String>> getCompareDocIds2(ESConnection esConnection,Map<String,String> contentdetail,int num) throws Exception{
         List<Map<String,String>> docIds = new ArrayList<>();
-        Map<String,Map<String,Object>> scores = new HashMap<>();
+        Map<String,Float> scores = new HashMap<>();
+        Map<String,Map<String,String>> detail = new HashMap<>();
         List<String> contents2 = new ArrayList<>();
-        contents2.add(contentdetail.get(title));
+//        contents2.add(contentdetail.get(title));
         contents2.add(contentdetail.get(abs));
         contents2.add(contentdetail.get(claims));
 
@@ -150,16 +151,18 @@ public class FindSimilarDoc implements Callable<List>{
                     String claims2 = rs.getString(5);
                     String title2 = rs.getString(6);
                     String key = appId+"_"+docId;
+
+                    Map<String,String> detailmap = new HashMap<>(4);
+                    detailmap.put(title,title2);
+                    detailmap.put(abs,abs2);
+                    detailmap.put(claims,claims2);
+                    detail.put(key,detailmap);
+
                     if (scores.containsKey(key)){
-                        float sco = (Float) scores.get(key).get("score");
-                        scores.get(key).put("score",sco+score);
+                        float sco = scores.get(key);
+                        scores.put(key,sco+score);
                     }else {
-                        Map<String,Object> scoremap = new HashMap<>(4);
-                        scoremap.put(title,title2);
-                        scoremap.put(abs,abs2);
-                        scoremap.put(claims,claims2);
-                        scoremap.put("score",score);
-                        scores.put(key,scoremap);
+                        scores.put(key,score);
                     }
                 }
 
@@ -176,27 +179,26 @@ public class FindSimilarDoc implements Callable<List>{
             }
         }
 
-        List<Map.Entry<String, Map<String,Object>>> list = new LinkedList<Map.Entry<String, Map<String,Object>>>(scores.entrySet());
-        Collections.sort(list,new Comparator<Map.Entry<String, Map<String,Object>>>() {
+        List<Map.Entry<String, Float>> list = new LinkedList<Map.Entry<String,Float>>(scores.entrySet());
+        Collections.sort(list,new Comparator<Map.Entry<String, Float>>() {
             @Override
-            public int compare(Map.Entry<String, Map<String,Object>> o1,
-                               Map.Entry<String, Map<String,Object>> o2) {
-                return ((Float)o2.getValue().get("score")).compareTo( (Float)o2.getValue().get("score"));
+            public int compare(Map.Entry<String, Float> o1,
+                               Map.Entry<String, Float> o2) {
+                return  (o2.getValue()).compareTo ( o1.getValue()) ;
             }
         });
         int length = list.size() > num?num:list.size();
         for (int i=0;i<length;i++){
             String key = list.get(i).getKey();
-            Map<String,Object> key_value = list.get(i).getValue();
 
             String id = key.split("_")[1];
             if (!StringUtil.empty(id)){
-                Map<String,String> detail = new HashMap<>(3);
-                detail.put(finaldocid,id);
-                detail.put(claims,key_value.get(claims)+"");
-                detail.put(abs,key_value.get(abs)+"");
-                detail.put(title,key_value.get(title)+"");
-                docIds.add(detail);
+                Map<String,String> details = new HashMap<>(3);
+                details.put(finaldocid,id);
+                details.put(claims,detail.get(key).get(claims)+"");
+                details.put(abs,detail.get(key).get(abs)+"");
+                details.put(title,detail.get(key).get(title)+"");
+                docIds.add(details);
             }
 
         }
