@@ -34,7 +34,7 @@ public class FindSimilarDoc implements Callable<List>{
     @Value("${es.jdbc.url}")
     private String esjdbcurl = "jdbc:sql4es://202.112.195.83:9300/patent821v9?cluster.name=patent";
     @Value("${es.cn.jdbc.url}")
-    private String cn_es_jdbcurl = "jdbc:sql4es://202.112.195.83:9300/patent821v13?cluster.name=patent";
+    private String cn_es_jdbcurl = "jdbc:sql4es://202.112.195.83:9300/patent821v9?cluster.name=patent";
 
 
     public  FindSimilarDoc (ESConnection esConnection, String sequence, String docid, Integer num,String outtype){

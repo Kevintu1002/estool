@@ -36,7 +36,7 @@ public class FindSimilarDoc2 implements Callable<Map>{
     @Value("${es.jdbc.url}")
     private String esjdbcurl = "jdbc:sql4es://202.112.195.83:9300/patent821v9?cluster.name=patent";
     @Value("${es.cn.jdbc.url}")
-    private String cn_es_jdbcurl = "jdbc:sql4es://202.112.195.83:9300/patent821v13?cluster.name=patent";
+    private String cn_es_jdbcurl = "jdbc:sql4es://202.112.195.83:9300/patent821v9?cluster.name=patent";
     @Value("${csv.out.dir.path}")
     private String csvoutdirpath = "/data/disk1/patent/Django/media/csvout/";
 
@@ -70,7 +70,9 @@ public class FindSimilarDoc2 implements Callable<Map>{
         }
 
         //输出tsv文件
+        System.out.println("==================== get origin file content ===================");
         Map<String,String> contents = getContents2(es_cn_Connection,docid);
+        System.out.println("==================== get search file content ===================");
         List<Map<String,String>> searchRes = getCompareDocIds2(esConnection,contents,num);
         List<String> titles = new ArrayList<>();
         List<String> abss = new ArrayList<>();
@@ -183,13 +185,13 @@ public class FindSimilarDoc2 implements Callable<Map>{
 //                            .append(date).append(" limit "+num);
 //                }
 
-                if(StringUtil.empty(date)){
+                if(StringUtil.empty(contentdetail.get(pdate))){
                     sql.append("select docid,appid,_score,abs,claims,title from en WHERE _search = 'abs:(")
                             .append(content).append(") or claims:(").append(content).append(") 'limit "+num);
                 }else{
                     sql.append("select docid,appid,_score,abs,claims,title from en WHERE _search = ' abs:(")
                             .append(content).append(") or claims:(").append(content).append(") ' and pdate < '")
-                            .append(date).append("' limit "+num);
+                            .append(contentdetail.get(pdate)).append("' limit "+num);
                 }
 
 //                System.out.println("===================================== search sql :" + sql.toString());

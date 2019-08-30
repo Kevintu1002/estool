@@ -34,7 +34,7 @@ public class SearchServiceImpl implements SearchService {
     @Value("${es.jdbc.url}")
     private String esjdbcurl = "jdbc:sql4es://202.112.195.83:9300/patent821v9?cluster.name=patent";
     @Value("${es.cn.jdbc.url}")
-    private String cn_es_jdbcurl = "jdbc:sql4es://202.112.195.83:9300/patent821v13?cluster.name=patent";
+    private String cn_es_jdbcurl = "jdbc:sql4es://202.112.195.83:9300/patent821v9?cluster.name=patent";
 
     @Value("${csv.origin.dir.path}")
     private String csvorigindirpath = "/data/disk1/patent/Django/media/filelist/";
@@ -105,14 +105,19 @@ public class SearchServiceImpl implements SearchService {
 
             log.info("====== The input file name is ："+absolutefilepath);
 
+            System.out.println("======= input type :"+type);
             if("3".equals(type)){//测试中文
                 long start = System.currentTimeMillis();
                 Class.forName("com.bonc.usdp.sql4es.jdbc.ESDriver");
                 ESConnection esConnection = (ESConnection) DriverManager.getConnection(esjdbcurl);
                 ESConnection escnConnection = (ESConnection) DriverManager.getConnection(cn_es_jdbcurl);
-                List<String> lines = FileUtil.readFileContentToListByLine(absolutefilepath,"utf-8");
+//                List<String> lines = FileUtil.readFileContentToListByLine(absolutefilepath,"utf-8");
 
-                returnjson.put("filepath",outCsv4(esConnection,escnConnection,lines,num,abs));
+                docIds = CSVUtil.readCsvFile(absolutefilepath);
+                System.out.println("======= read file success  = "+docIds.toString());
+                returnjson.put("filepath",outCsv5(esConnection,escnConnection,docIds,num,abs));
+
+                System.out.println("java 程序执行完毕，开始执行ssh");
 
                 long end = System.currentTimeMillis();
 
@@ -376,6 +381,60 @@ public class SearchServiceImpl implements SearchService {
         return  absoluteoutpath;
     }
 
+    private List<String> outCsv5(ESConnection esConnection,ESConnection escnConnection,Map<String,String> docIds,Integer num,String type) throws Exception{
+        String uuid = UUID.randomUUID().toString().replace("-", "");
+//        String absoluteoutpath = csvoutdirpath + type +"_"+ uuid +".tsv";
+
+//        int buffersize = 0;
+
+        String titlepath = csvoutdirpath + title +".tsv";
+        String claimpath = csvoutdirpath + claims +".tsv";
+        String abspath = csvoutdirpath + abs +".tsv";
+
+        File file1 = new File(titlepath);
+        if(file1.exists()){
+            file1.delete();
+        }
+        File file2 = new File(claimpath);
+        if(file2.exists()){
+            file2.delete();
+        }
+        File file3 = new File(abspath);
+        if(file3.exists()){
+            file3.delete();
+        }
+
+        Set<String> keynums = docIds.keySet();
+
+        List<Future<Map>> results = new LinkedList<Future<Map>>();
+        ThreadPoolExecutor excutor = new ThreadPoolExecutor(Integer.parseInt(threadpoolsize), Integer.parseInt(threadpoolsize), 0,
+                TimeUnit.SECONDS, new LinkedBlockingDeque<Runnable>(),
+                new ThreadPoolExecutor.CallerRunsPolicy());
+
+//        Map<String,List<String>> datefilter = FileUtil.readDateFilter(datefilterpath);
+        for(String m : keynums){
+//           String pdate =  datefilter.get(docid).get(0);
+            FindSimilarDoc2 findSimilarDoc2 = new FindSimilarDoc2(esConnection,escnConnection,m+"",docIds.get(m),num,null);
+            Future<Map> result =  excutor.submit(findSimilarDoc2);
+            results.add(result);
+        }
+
+        excutor.shutdown();
+
+        while (true){
+            System.out.println("============== 主线程在等待 ============");
+            if(excutor.getActiveCount() == 0){
+                System.out.println("============== 所有线程执行完毕 ============");
+                break;
+            }
+        }
+        List<String> paths = new ArrayList<>(3);
+        paths.add(titlepath);
+        paths.add(claimpath);
+        paths.add(abspath);
+        return paths;
+    }
+
     /**
      * type = 3 多线程处理 生成中间两个csv文件
      * @param docIds
@@ -413,10 +472,10 @@ public class SearchServiceImpl implements SearchService {
                 new ThreadPoolExecutor.CallerRunsPolicy());
 
         int m = 1;
-        Map<String,List<String>> datefilter = FileUtil.readDateFilter(datefilterpath);
+//        Map<String,List<String>> datefilter = FileUtil.readDateFilter(datefilterpath);
         for(String docid : docIds){
-           String pdate =  datefilter.get(docid).get(0);
-            FindSimilarDoc2 findSimilarDoc2 = new FindSimilarDoc2(esConnection,escnConnection,m+"",docid,num,pdate);
+//           String pdate =  datefilter.get(docid).get(0);
+            FindSimilarDoc2 findSimilarDoc2 = new FindSimilarDoc2(esConnection,escnConnection,m+"",docid,num,null);
             Future<Map> result =  excutor.submit(findSimilarDoc2);
             results.add(result);
             m ++;
