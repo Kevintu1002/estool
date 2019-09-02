@@ -3,7 +3,9 @@ package com.kevin.service.impl;
 import com.alibaba.fastjson.JSONObject;
 import com.bonc.usdp.sql4es.jdbc.ESConnection;
 import com.csvreader.CsvWriter;
+import com.kevin.cons.PatentConstant;
 import com.kevin.service.SearchService;
+import com.kevin.service.util.GoogleTranslate;
 import com.kevin.task.FindSimilarDoc;
 import com.kevin.task.FindSimilarDoc2;
 import com.kevin.utils.*;
@@ -25,13 +27,6 @@ import java.util.concurrent.*;
 @Service("searchService")
 public class SearchServiceImpl implements SearchService {
     Log log = LogFactory.getLog(SearchServiceImpl.class);
-
-    private static final String finaldocid = "docid";
-    private static final String title = "title";
-    private static final String abs = "abs";
-    private static final String claims = "claims";
-    private static final String doctype_cn = "CN";
-    private static final String doctype_en = "US";
 
     @Value("${es.jdbc.url}")
     private String esjdbcurl = "jdbc:sql4es://202.112.195.83:9300/patent821v9?cluster.name=patent";
@@ -115,12 +110,16 @@ public class SearchServiceImpl implements SearchService {
             docIds = CSVUtil.readCsvFile(absolutefilepath);
 
             System.out.println("======= read file success  = "+docIds.toString());
-            if(docIds.get("2").contains(doctype_cn)){
+            if(docIds.get("2").contains(PatentConstant.doctype_cn)){
                 /**
                  * 中文doc，查询处理
                  */
                 System.out.println("=================== 处理中文专利查询 =====================");
-                List<String> filepaths = DocSearchHandler(docIds,num,type,doctype_cn);
+                long googlestart = System.currentTimeMillis();
+                boolean googleflag = GoogleTranslate.getGoogleTranslate(absolutefilepath);
+                long googleend = System.currentTimeMillis();
+                System.out.println("=================== 得到谷歌翻译结果 ： "+googleflag+" ,  耗时： "+(googleend - googlestart) /1000 +" s =============");
+                List<String> filepaths = DocSearchHandler(docIds,num,type,PatentConstant.doctype_cn,googleflag);
                 returnjson.put("filepath",filepaths);
             }else{
                 /**
@@ -128,7 +127,7 @@ public class SearchServiceImpl implements SearchService {
                  */
                 System.out.println("=================== 处理英文专利查询 =====================");
                 if(null == num) num = 10;
-                List<String> filepath = DocSearchHandler(docIds,num,type,doctype_en);
+                List<String> filepath = DocSearchHandler(docIds,num,type,PatentConstant.doctype_en,false);
                 returnjson.put("filepath",filepath);
             }
             if("2".equals(type)){
@@ -136,9 +135,9 @@ public class SearchServiceImpl implements SearchService {
 //                执行linux脚本
                 LinuxSCP2Util scp = LinuxSCP2Util.getInstance(IP, PORT,
                         USERNAME,PASSWORD);
-                scp.putFile(csvoutdirpath+ title +".tsv", title +".tsv", REMOTEURL, null);
-                scp.putFile(csvoutdirpath + claims +".tsv", claims +".tsv", REMOTEURL, null);
-                scp.putFile(csvoutdirpath + abs +".tsv", abs +".tsv", REMOTEURL, null);
+                scp.putFile(csvoutdirpath+ PatentConstant.title +".tsv", PatentConstant.title +".tsv", REMOTEURL, null);
+                scp.putFile(csvoutdirpath + PatentConstant.claims +".tsv", PatentConstant.claims +".tsv", REMOTEURL, null);
+                scp.putFile(csvoutdirpath + PatentConstant.abs +".tsv", PatentConstant.abs +".tsv", REMOTEURL, null);
 
                 String command = "cd /home/ky/suda_test/ "+"\n"
                         +"source ./venv/bin/activate"+"\n"
@@ -206,19 +205,19 @@ public class SearchServiceImpl implements SearchService {
      * @return
      * @throws Exception
      */
-    private List<String> DocSearchHandler(Map<String,String> docIds,Integer num,String type,String doctype) throws Exception{
+    private List<String> DocSearchHandler(Map<String,String> docIds,Integer num,String type,String doctype,boolean googleflag) throws Exception{
         List<String> paths = new ArrayList<>(3);
         /**
          * type = 1 不用苏大服务进行精选  type = 2 使用苏大服务进行精选
          */
         if("1".equals(type)){
-            paths.add(noUseSuDaService(docIds,num,doctype));
+            paths.add(noUseSuDaService(docIds,num,doctype,googleflag));
         }else{
-            String titlepath = csvoutdirpath + title +".tsv";
-            String claimpath = csvoutdirpath + claims +".tsv";
-            String abspath = csvoutdirpath + abs +".tsv";
+            String titlepath = csvoutdirpath + PatentConstant.title +".tsv";
+            String claimpath = csvoutdirpath + PatentConstant.claims +".tsv";
+            String abspath = csvoutdirpath + PatentConstant.abs +".tsv";
 
-            useSuDaService(docIds,num,doctype,titlepath,claimpath,abspath);
+            useSuDaService(docIds,num,doctype,titlepath,claimpath,abspath,googleflag);
 
             paths.add(titlepath);
             paths.add(claimpath);
@@ -233,13 +232,13 @@ public class SearchServiceImpl implements SearchService {
      * @param num
      * @return
      */
-    private String noUseSuDaService(Map<String,String> docIds,Integer num,String doctype){
+    private String noUseSuDaService(Map<String,String> docIds,Integer num,String doctype,boolean googleflag){
         String absoluteoutpath = csvresultdirpath +"sim_result.csv";
         try{
             Class.forName("com.bonc.usdp.sql4es.jdbc.ESDriver");
             ESConnection esConnection = (ESConnection) DriverManager.getConnection(esjdbcurl);
             ESConnection escnConnection = null;
-            if(doctype_cn.equals(doctype)){
+            if(PatentConstant.doctype_cn.equals(doctype)){
                 escnConnection = (ESConnection) DriverManager.getConnection(cn_es_jdbcurl);
             }
 
@@ -257,7 +256,7 @@ public class SearchServiceImpl implements SearchService {
                     new ThreadPoolExecutor.CallerRunsPolicy());
 
             for(String m : keynums){
-                FindSimilarDoc findSimilarDoc = new FindSimilarDoc(esConnection,escnConnection,m,docIds.get(m),num,doctype);
+                FindSimilarDoc findSimilarDoc = new FindSimilarDoc(esConnection,escnConnection,m,docIds.get(m),num,doctype,googleflag);
                 Future<List> result =  excutor.submit(findSimilarDoc);
                 results.add(result);
             }
@@ -293,7 +292,8 @@ public class SearchServiceImpl implements SearchService {
      * @param claimpath
      * @param abspath
      */
-    private void useSuDaService(Map<String,String> docIds,Integer num,String doctype,String titlepath,String claimpath,String abspath){
+    private void useSuDaService(Map<String,String> docIds,Integer num,String doctype,String titlepath,
+                                String claimpath,String abspath,boolean flag){
         try{
             Class.forName("com.bonc.usdp.sql4es.jdbc.ESDriver");
             ESConnection esConnection = (ESConnection) DriverManager.getConnection(esjdbcurl);
@@ -315,7 +315,7 @@ public class SearchServiceImpl implements SearchService {
 
             Set<String> keynums = docIds.keySet();
 
-            if(doctype_cn.equals(doctype)){
+            if(PatentConstant.doctype_cn.equals(doctype)){
                 escnConnection = (ESConnection) DriverManager.getConnection(cn_es_jdbcurl);
             }
 
@@ -327,7 +327,7 @@ public class SearchServiceImpl implements SearchService {
 //        Map<String,List<String>> datefilter = FileUtil.readDateFilter(datefilterpath);
             for(String m : keynums){
 //           String pdate =  datefilter.get(docid).get(0);
-                FindSimilarDoc2 findSimilarDoc2 = new FindSimilarDoc2(esConnection,escnConnection,doctype,m+"",docIds.get(m),num,null);
+                FindSimilarDoc2 findSimilarDoc2 = new FindSimilarDoc2(esConnection,escnConnection,doctype,m+"",docIds.get(m),num,null,flag);
                 Future<Map> result =  excutor.submit(findSimilarDoc2);
                 results.add(result);
             }

@@ -69,7 +69,7 @@ public class PatentSearchUtil {
                 st = esConnection.createStatement();
                 StringBuilder sql = new StringBuilder();
 
-                int searchNum = num + 300;
+                int searchNum = num + (num * 3 /4);
 //                if(StringUtil.empty(date)){
 //                    sql.append("select docid,appid,_score,abs,claims,title from en WHERE _search = ' abs:(")
 //                            .append(content).append(") or claims:(").append(content).append(") or description:(")
@@ -90,7 +90,7 @@ public class PatentSearchUtil {
                             .append(contentdetail.get(pdate)).append("' limit "+searchNum);
                 }
 
-//                System.out.println("===================================== search sql :" + sql.toString());
+                System.out.println("===================================== search sql :" + sql.toString());
 
                 ResultSet rs = st.executeQuery(sql.toString());
                 int n = 0;
