@@ -72,21 +72,27 @@ public class FindSimilarDoc implements Callable<List>{
                         contents = (Map<String, String>) contentdetail.get(docid);
                         if(null == contents ){
                             System.out.println("=============== 获得的claims 、abs 为空 =========");
-                            String[] docids = {sequence,docid,n+"",""};
-                            out.add(docids);
+                            for(int m = 1;m <= num;m ++){
+                                String[] docids = {sequence,docid,m+"",""};
+                                out.add(docids);
+                            }
                             return out;
                         }
                     }catch (Exception e){
                         System.out.println(e.getLocalizedMessage());
-                        String[] docids = {sequence,docid,n+"",""};
-                        out.add(docids);
+                        for(int m = 1;m <= num;m ++){
+                            String[] docids = {sequence,docid,m+"",""};
+                            out.add(docids);
+                        }
                         return out;
                     }
 
                 }else{
                     System.out.println("=========== 调用google 翻译失败 =========");
-                    String[] docids = {sequence,docid,n+"",""};
-                    out.add(docids);
+                    for(int m = 1;m <= num;m ++){
+                        String[] docids = {sequence,docid,m+"",""};
+                        out.add(docids);
+                    }
                     return out;
                 }
             }else{
@@ -105,8 +111,10 @@ public class FindSimilarDoc implements Callable<List>{
         }catch (Exception e){
             System.out.println("============== 线程处理docid："+docid+"  出现问题 =========");
             System.out.println(e.getMessage());
-            String[] docids = {sequence,docid,1+"",""};
-            out.add(docids);
+            for(int m = 1;m <= num;m ++){
+                String[] docids = {sequence,docid,m+"",""};
+                out.add(docids);
+            }
             return out;
         }
 
