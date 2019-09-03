@@ -278,6 +278,10 @@ public class SearchServiceImpl implements SearchService {
             }
 
             csvWriter.close();
+            esConnection.close();
+            if(null != escnConnection){
+                escnConnection.close();
+            }
         }catch (Exception e){
             System.out.println("======= no use SuDa service occuer error ===");
             log.error(e.getMessage(),e);
@@ -343,6 +347,12 @@ public class SearchServiceImpl implements SearchService {
                     break;
                 }
             }
+
+            esConnection.close();
+            if(null != escnConnection){
+                escnConnection.close();
+            }
+
         }catch (Exception e){
             System.out.println("======= use SuDa service occuer error ===");
             log.error(e.getMessage(),e);

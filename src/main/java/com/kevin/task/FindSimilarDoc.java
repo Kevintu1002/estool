@@ -84,7 +84,10 @@ public class FindSimilarDoc implements Callable<List>{
                 }
 
             }else{
-                contents = PatentSearchUtil.getContents2(es_cn_Connection,docid);
+                System.out.println("=========== 调用google 翻译失败 =========");
+                String[] docids = {sequence,docid,n+"",""};
+                out.add(docids);
+                return out;
             }
         }else{
             contents = PatentSearchUtil.getContents2(esConnection,docid);

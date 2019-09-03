@@ -33,7 +33,8 @@ public class GoogleTranslate {
                     "python /home/ky/patent_search/CHN/patent_crawl.py";
             boolean flag = ShellUtils.executeRemoteShell(IP,USERNAME,PASSWORD,command);
 
-            String killcommand = "ps -ef |grep sslocal |awk '{print $2}'|xargs kill -9";
+//            String killcommand = "ps -ef |grep sslocal |awk '{print $2}'|xargs kill -9";
+            String killcommand = "pkill -９ sslocal";
             ShellUtils.executeRemoteShell(IP,USERNAME,PASSWORD,killcommand);
             return flag;
         }catch (Exception e){
