@@ -12,9 +12,9 @@ public class GoogleTranslate {
 
     public static final int PORT = 22;
 
-    public static final String USERNAME = "ky";
+    public static final String USERNAME = "root";
 
-    public static final String PASSWORD = "12345";
+    public static final String PASSWORD = "root";
 
     public static final String REMOTEURL = "/home/ky/patent_search/CHN/";
 
@@ -26,11 +26,15 @@ public class GoogleTranslate {
                     USERNAME,PASSWORD);
             scp.putFile(absolutefilepath,  "CN_ID_TEST_Samples.csv", REMOTEURL, null);
 
-            String command = "source  /ect/profile \n" +
-                    "source /home/ky/patent_search/venv/bin/activate \n" +
-                    "cd /home/ky/patent_search/CHN \n" +
-                    "python patent_crawl.py";
+            String command = "source /etc/profile \n" +
+                    "nohup sslocal -c /etc/ss.json /dev/null 2>&1 \n" +
+                    "privoxy --user privoxy /usr/local/etc/privoxy/config\n" +
+                    "source /home/ky/patent_search/venv/bin/activate\n" +
+                    "python /home/ky/patent_search/CHN/patent_crawl.py";
             boolean flag = ShellUtils.executeRemoteShell(IP,USERNAME,PASSWORD,command);
+
+            String killcommand = "ps -ef |grep sslocal |awk '{print $2}'|xargs kill -9";
+            ShellUtils.executeRemoteShell(IP,USERNAME,PASSWORD,killcommand);
             return flag;
         }catch (Exception e){
             System.out.println("====== ");

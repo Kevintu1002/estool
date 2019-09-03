@@ -5,6 +5,7 @@ import com.bonc.usdp.sql4es.jdbc.ESConnection;
 import com.kevin.cons.PatentConstant;
 import com.kevin.service.util.PatentSearchUtil;
 import com.kevin.utils.JsonFileUtil;
+import com.kevin.utils.StringUtil;
 import org.springframework.beans.factory.annotation.Value;
 
 import java.sql.DriverManager;
@@ -65,9 +66,23 @@ public class FindSimilarDoc implements Callable<List>{
             //从中文es库中查找内容
             if(googleflag){
                 //调用翻译工具获得内容
-                String jsonstr = JsonFileUtil.ReadJsonFileToJsonString(jsonfilepath);
-                Map contentdetail = (Map) JSON.parse(jsonstr);
-                contents = (Map<String, String>) contentdetail.get(docid);
+                try{
+                    String jsonstr = JsonFileUtil.ReadJsonFileToJsonString(jsonfilepath);
+                    Map contentdetail = (Map) JSON.parse(jsonstr);
+                    contents = (Map<String, String>) contentdetail.get(docid);
+                    if(null == contents || StringUtil.empty(contents.get(PatentConstant.claims))
+                            || StringUtil.empty(contents.get(PatentConstant.abs))){
+                        String[] docids = {sequence,docid,n+"",""};
+                        out.add(docids);
+                        return out;
+                    }
+                }catch (Exception e){
+                    System.out.println(e.getLocalizedMessage());
+                    String[] docids = {sequence,docid,n+"",""};
+                    out.add(docids);
+                    return out;
+                }
+
             }else{
                 contents = PatentSearchUtil.getContents2(es_cn_Connection,docid);
             }

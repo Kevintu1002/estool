@@ -1,6 +1,7 @@
 package com.kevin.service.util;
 
 import com.bonc.usdp.sql4es.jdbc.ESConnection;
+import com.kevin.cons.PatentConstant;
 import com.kevin.utils.StringUtil;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -13,11 +14,11 @@ import java.util.*;
 public class PatentSearchUtil {
 
     private static  Log log = LogFactory.getLog(PatentSearchUtil.class);
-    private static final String finaldocid = "docid";
-    private static final String title = "title";
-    private static final String abs = "abs";
-    private static final String claims = "claims";
-    private static final String pdate = "pdate";
+    private static final String finaldocid = PatentConstant.finaldocid;
+    private static final String title = PatentConstant.title;
+    private static final String abs = PatentConstant.abs;
+    private static final String claims = PatentConstant.claims;
+    private static final String pdate = PatentConstant.pdate;
 
     public static Map<String,String> getContents2(ESConnection esConnection, String docId){
         Map<String,String> detail = new HashMap<>(3);
@@ -61,8 +62,9 @@ public class PatentSearchUtil {
 //        contents2.add(contentdetail.get(title));
         contents2.add(contentdetail.get(abs));
         contents2.add(contentdetail.get(claims));
-
         log.info("========== get compare docid ===============");
+        log.info("========== origin abs is :"+contentdetail.get(abs));
+        log.info("========== origin claims is :"+contentdetail.get(claims));
         for (String content:contents2){
             Statement st=null;
             try {

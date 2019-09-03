@@ -6,6 +6,7 @@ import com.kevin.cons.PatentConstant;
 import com.kevin.service.util.PatentSearchUtil;
 import com.kevin.utils.FileUtil;
 import com.kevin.utils.JsonFileUtil;
+import com.kevin.utils.StringUtil;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -65,12 +66,20 @@ public class FindSimilarDoc2 implements Callable<Map>{
         Map<String,String> contents = new HashMap<>();
 
         if(PatentConstant.doctype_cn.equals(doctype)){
-            //从中文es库中查找内容
             if(googleflag){
                 //调用翻译工具获得内容
-                String jsonstr = JsonFileUtil.ReadJsonFileToJsonString(jsonfilepath);
-                Map contentdetail = (Map) JSON.parse(jsonstr);
-                contents = (Map<String, String>) contentdetail.get(docid);
+                try{
+                    String jsonstr = JsonFileUtil.ReadJsonFileToJsonString(jsonfilepath);
+                    Map contentdetail = (Map) JSON.parse(jsonstr);
+                    contents = (Map<String, String>) contentdetail.get(docid);
+                    if(null == contents || StringUtil.empty(contents.get(PatentConstant.claims))
+                            || StringUtil.empty(contents.get(PatentConstant.abs))){
+                        contents = PatentSearchUtil.getContents2(es_cn_Connection,docid);
+                    }
+                }catch (Exception e){
+                    System.out.println(e.getLocalizedMessage());
+                    contents = PatentSearchUtil.getContents2(es_cn_Connection,docid);
+                }
             }else{
                 contents = PatentSearchUtil.getContents2(es_cn_Connection,docid);
             }

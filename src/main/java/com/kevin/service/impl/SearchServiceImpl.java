@@ -1,11 +1,13 @@
 package com.kevin.service.impl;
 
+import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.bonc.usdp.sql4es.jdbc.ESConnection;
 import com.csvreader.CsvWriter;
 import com.kevin.cons.PatentConstant;
 import com.kevin.service.SearchService;
 import com.kevin.service.util.GoogleTranslate;
+import com.kevin.service.util.PatentSearchUtil;
 import com.kevin.task.FindSimilarDoc;
 import com.kevin.task.FindSimilarDoc2;
 import com.kevin.utils.*;
@@ -29,24 +31,24 @@ public class SearchServiceImpl implements SearchService {
     Log log = LogFactory.getLog(SearchServiceImpl.class);
 
     @Value("${es.jdbc.url}")
-    private String esjdbcurl = "jdbc:sql4es://202.112.195.83:9300/patent821v9?cluster.name=patent";
+    private String esjdbcurl = PatentConstant.esjdbcurl;
     @Value("${es.cn.jdbc.url}")
-    private String cn_es_jdbcurl = "jdbc:sql4es://202.112.195.83:9300/patent821v9?cluster.name=patent";
+    private String cn_es_jdbcurl = PatentConstant.cn_es_jdbcurl;
 
     @Value("${csv.origin.dir.path}")
-    private String csvorigindirpath = "/data/disk1/patent/Django/media/filelist/";
+    private String csvorigindirpath = PatentConstant.csvorigindirpath;
 
     @Value("${csv.out.dir.path}")
-    private String csvoutdirpath = "/data/disk1/patent/Django/media/csvout/";
+    private String csvoutdirpath = PatentConstant.csvoutdirpath;
 
     @Value("${csv.result.dir.path}")
-    private String csvresultdirpath = "/tmp/";
+    private String csvresultdirpath = PatentConstant.csvresultdirpath;
 
     @Value("${result.dir.path}")
-    private String resultdirpath = "/data/disk1/patent/Django/media/csvout/";
+    private String resultdirpath = PatentConstant.resultdirpath;
 
     @Value("${datefilter.path}")
-    private String datefilterpath = "/data/disk1/patent/Django/media/cn_us_citation_publicdate_producedate";
+    private String datefilterpath = PatentConstant.datefilterpath;
 
     @Value("${threadpool.size}")
     private String threadpoolsize = "10";
