@@ -34,7 +34,6 @@ public class JsonFileUtil {
         byte[] bytes = new byte[inputStream.available()];
         inputStream.read(bytes);
         String str = new String(bytes);
-        str = StringUtil.remove2(str);
         return str;
     }
 

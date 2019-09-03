@@ -40,6 +40,7 @@ public class StringUtil {
         content = content.replaceAll("\\+", "");
         content = content.replaceAll("=", "");
 
+        content = content.replaceAll("^", "");
         content = content.replaceAll(";", "");
         content = content.replaceAll("==", "");
         content = content.replaceAll("--", "");

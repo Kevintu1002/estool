@@ -60,11 +60,12 @@ public class PatentSearchUtil {
         Map<String,Map<String,String>> detail = new HashMap<>();
         List<String> contents2 = new ArrayList<>();
 //        contents2.add(contentdetail.get(title));
-        contents2.add(contentdetail.get(abs));
-        contents2.add(contentdetail.get(claims));
-        log.info("========== get compare docid ===============");
-        log.info("========== origin abs is :"+contentdetail.get(abs));
-        log.info("========== origin claims is :"+contentdetail.get(claims));
+        if(! StringUtil.empty(contentdetail.get(abs))){
+            contents2.add(StringUtil.remove2(contentdetail.get(abs)));
+        }
+        if(! StringUtil.empty(contentdetail.get(claims))){
+            contents2.add(StringUtil.remove2(contentdetail.get(claims)));
+        }
         for (String content:contents2){
             Statement st=null;
             try {
@@ -92,7 +93,7 @@ public class PatentSearchUtil {
                             .append(contentdetail.get(pdate)).append("' limit "+searchNum);
                 }
 
-                System.out.println("===================================== search sql :" + sql.toString());
+//                System.out.println("====================== search sql :" + sql.toString());
 
                 ResultSet rs = st.executeQuery(sql.toString());
                 int n = 0;

@@ -1,13 +1,11 @@
 package com.kevin.service.impl;
 
-import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.bonc.usdp.sql4es.jdbc.ESConnection;
 import com.csvreader.CsvWriter;
 import com.kevin.cons.PatentConstant;
 import com.kevin.service.SearchService;
 import com.kevin.service.util.GoogleTranslate;
-import com.kevin.service.util.PatentSearchUtil;
 import com.kevin.task.FindSimilarDoc;
 import com.kevin.task.FindSimilarDoc2;
 import com.kevin.utils.*;
@@ -49,6 +47,9 @@ public class SearchServiceImpl implements SearchService {
 
     @Value("${datefilter.path}")
     private String datefilterpath = PatentConstant.datefilterpath;
+
+    @Value("${cn.json.path}")
+    private String jsonfilepath = PatentConstant.jsonfilepath;
 
     @Value("${threadpool.size}")
     private String threadpoolsize = "10";
@@ -257,8 +258,11 @@ public class SearchServiceImpl implements SearchService {
                     TimeUnit.SECONDS, new LinkedBlockingDeque<Runnable>(),
                     new ThreadPoolExecutor.CallerRunsPolicy());
 
+            String jsonstr = JsonFileUtil.ReadJsonFileToJsonString(jsonfilepath);
+            System.out.println("============= 读取json文件 =========");
+
             for(String m : keynums){
-                FindSimilarDoc findSimilarDoc = new FindSimilarDoc(esConnection,escnConnection,m,docIds.get(m),num,doctype,googleflag);
+                FindSimilarDoc findSimilarDoc = new FindSimilarDoc(esConnection,escnConnection,m,docIds.get(m),num,doctype,googleflag,jsonstr);
                 Future<List> result =  excutor.submit(findSimilarDoc);
                 results.add(result);
             }
@@ -466,4 +470,5 @@ public class SearchServiceImpl implements SearchService {
         return contents;
 
     }
+
 }

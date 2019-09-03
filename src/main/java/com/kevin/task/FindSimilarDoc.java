@@ -5,7 +5,6 @@ import com.bonc.usdp.sql4es.jdbc.ESConnection;
 import com.kevin.cons.PatentConstant;
 import com.kevin.service.util.PatentSearchUtil;
 import com.kevin.utils.JsonFileUtil;
-import com.kevin.utils.StringUtil;
 import org.springframework.beans.factory.annotation.Value;
 
 import java.sql.DriverManager;
@@ -21,6 +20,7 @@ public class FindSimilarDoc implements Callable<List>{
     private Integer num;
     private String doctype;
     private boolean googleflag;
+    private String jsonstr;
 
     @Value("${es.jdbc.url}")
     private String esjdbcurl = PatentConstant.esjdbcurl;
@@ -30,7 +30,7 @@ public class FindSimilarDoc implements Callable<List>{
     private String jsonfilepath = PatentConstant.jsonfilepath;
 
     public  FindSimilarDoc (ESConnection esConnection,ESConnection es_cn_Connection, String sequence,
-                            String docid, Integer num,String doctype, boolean googleflag
+                            String docid, Integer num,String doctype, boolean googleflag,String jsonstr
                             ){
         this.sequence = sequence;
         this.esConnection = esConnection;
@@ -39,6 +39,7 @@ public class FindSimilarDoc implements Callable<List>{
         this.num = num;
         this.doctype = doctype;
         this.googleflag = googleflag;
+        this.jsonstr = jsonstr;
     }
 
     /**
@@ -47,60 +48,67 @@ public class FindSimilarDoc implements Callable<List>{
      * @throws Exception
      */
     @Override
-    public List call() throws Exception {
-        //写入输出csv
-        int  n = 1;
-
-        if(null == esConnection || esConnection.isClosed()){
-            Class.forName("com.bonc.usdp.sql4es.jdbc.ESDriver");
-            esConnection = (ESConnection) DriverManager.getConnection(esjdbcurl);
-        }
-        if((null == es_cn_Connection || es_cn_Connection.isClosed()) && PatentConstant.doctype_cn.equals(doctype) && ! googleflag){
-            Class.forName("com.bonc.usdp.sql4es.jdbc.ESDriver");
-            es_cn_Connection = (ESConnection) DriverManager.getConnection(cn_es_jdbcurl);
-        }
-
+    public List call(){
         List<String[]> out = new ArrayList<>();
-        Map<String,String> contents = new HashMap<>();
-        if(PatentConstant.doctype_cn.equals(doctype)){
-            //从中文es库中查找内容
-            if(googleflag){
-                //调用翻译工具获得内容
-                try{
-                    String jsonstr = JsonFileUtil.ReadJsonFileToJsonString(jsonfilepath);
-                    Map contentdetail = (Map) JSON.parse(jsonstr);
-                    contents = (Map<String, String>) contentdetail.get(docid);
-                    if(null == contents || StringUtil.empty(contents.get(PatentConstant.claims))
-                            || StringUtil.empty(contents.get(PatentConstant.abs))){
+        try{
+            //写入输出csv
+            int  n = 1;
+
+            if(null == esConnection || esConnection.isClosed()){
+                Class.forName("com.bonc.usdp.sql4es.jdbc.ESDriver");
+                esConnection = (ESConnection) DriverManager.getConnection(esjdbcurl);
+            }
+            if((null == es_cn_Connection || es_cn_Connection.isClosed()) && PatentConstant.doctype_cn.equals(doctype) && ! googleflag){
+                Class.forName("com.bonc.usdp.sql4es.jdbc.ESDriver");
+                es_cn_Connection = (ESConnection) DriverManager.getConnection(cn_es_jdbcurl);
+            }
+            Map<String,String> contents = new HashMap<>();
+            if(PatentConstant.doctype_cn.equals(doctype)){
+                //从中文es库中查找内容
+                if(googleflag){
+                    //调用翻译工具获得内容
+                    try{
+                        Map contentdetail = (Map) JSON.parse(jsonstr);
+                        contents = (Map<String, String>) contentdetail.get(docid);
+                        if(null == contents ){
+                            System.out.println("=============== 获得的claims 、abs 为空 =========");
+                            String[] docids = {sequence,docid,n+"",""};
+                            out.add(docids);
+                            return out;
+                        }
+                    }catch (Exception e){
+                        System.out.println(e.getLocalizedMessage());
                         String[] docids = {sequence,docid,n+"",""};
                         out.add(docids);
                         return out;
                     }
-                }catch (Exception e){
-                    System.out.println(e.getLocalizedMessage());
+
+                }else{
+                    System.out.println("=========== 调用google 翻译失败 =========");
                     String[] docids = {sequence,docid,n+"",""};
                     out.add(docids);
                     return out;
                 }
-
             }else{
-                System.out.println("=========== 调用google 翻译失败 =========");
-                String[] docids = {sequence,docid,n+"",""};
-                out.add(docids);
-                return out;
+                contents = PatentSearchUtil.getContents2(esConnection,docid);
             }
-        }else{
-            contents = PatentSearchUtil.getContents2(esConnection,docid);
-        }
 
-        List<Map<String,String>> searchRes = PatentSearchUtil.getCompareDocIds2(esConnection,contents,num);
+            List<Map<String,String>> searchRes = PatentSearchUtil.getCompareDocIds2(esConnection,contents,num);
 
-        for(Map<String,String> resdocid : searchRes){
-            String[] docids = {sequence,docid,n+"",resdocid.get(PatentConstant.finaldocid)};
+            for(Map<String,String> resdocid : searchRes){
+                String[] docids = {sequence,docid,n+"",resdocid.get(PatentConstant.finaldocid)};
+                out.add(docids);
+                n ++;
+            }
+            return out;
+
+        }catch (Exception e){
+            System.out.println("============== 线程处理docid："+docid+"  出现问题 =========");
+            System.out.println(e.getMessage());
+            String[] docids = {sequence,docid,1+"",""};
             out.add(docids);
-            n ++;
+            return out;
         }
-        return out;
 
     }
 }
