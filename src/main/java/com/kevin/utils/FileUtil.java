@@ -46,6 +46,27 @@ public class FileUtil {
 
     }
 
+    public static Set<String> readFileDocId(String inputFile,String charset){
+
+        Set<String> docids = new HashSet<>();
+        try {
+            BufferedInputStream bis = new BufferedInputStream(new FileInputStream(new File(inputFile)));
+            BufferedReader in = new BufferedReader(new InputStreamReader(bis, charset));// 10M缓存
+            while (in.ready()) {
+                String line = in.readLine();
+                if (!StringUtil.empty(line)){
+                    docids.add(line.split(" ")[0]);
+                }
+            }
+            in.close();
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        }
+        return docids;
+
+    }
+
+
     public static List<String> readFileContentInDirToList(String inputDir,String charset){
 
         List<String> contents = new ArrayList<String>();
